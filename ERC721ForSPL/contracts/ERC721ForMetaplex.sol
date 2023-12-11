@@ -45,7 +45,7 @@ interface IERC721Metadata is IERC721 {
 
 
 /// @custom:oz-upgrades-unsafe-allow constructor
-contract ERC721ForSPL is IERC165, IERC721, IERC721Metadata, OwnableUpgradeable, UUPSUpgradeable {
+contract ERC721ForMetaplex is IERC165, IERC721, IERC721Metadata, OwnableUpgradeable, UUPSUpgradeable {
     ISPLToken public constant SPL_TOKEN = ISPLToken(0xFf00000000000000000000000000000000000004);
     IMetaplex public constant METAPLEX = IMetaplex(0xff00000000000000000000000000000000000005);
 
