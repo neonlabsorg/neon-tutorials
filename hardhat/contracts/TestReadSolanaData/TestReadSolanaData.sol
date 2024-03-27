@@ -30,6 +30,13 @@ contract TestReadSolanaData {
         return (data.toUint64()).readLittleEndianUnsigned64();
     }
 
+    function readSolanaDataPrice(bytes32 solanaAddress, uint64 offset, uint64 len) public view returns(int64) {
+        (bool success, bytes memory data) = QueryAccount.data(uint256(solanaAddress), offset, len);
+        require(success, "failed to query account data");
+
+        return (data.toUint64()).readLittleEndianSigned64();
+    }
+
     function readSolanaDataAccountPublicKey(bytes32 solanaAddress, uint64 offset, uint64 len) public view returns(bytes32) {
         (bool success, bytes memory data) = QueryAccount.data(uint256(solanaAddress), offset, len);
         require(success, "failed to query account data");

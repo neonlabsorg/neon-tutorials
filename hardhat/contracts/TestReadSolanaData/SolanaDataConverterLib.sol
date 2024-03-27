@@ -126,21 +126,31 @@ library SolanaDataConverterLib {
         return(input >> 32) | (input << 32);
     }
 
+    function readLittleEndianSigned64(uint64 input) internal pure returns (int64) {
+        input = ((input << 8) & 0xFF00FF00FF00FF00) | ((input >> 8) & 0x00FF00FF00FF00FF);
+        input = ((input << 16) & 0xFFFF0000FFFF0000) | ((input >> 16) & 0x0000FFFF0000FFFF);
+        return int64((input << 32) | (input >> 32));
+    }
+
     function readLittleEndianUnsigned128(uint128 input) internal pure returns (uint128) {
         // swap bytes
-        input = ((input & 0xFF00FF00FF00FF00FF00FF00FF00FF00) >> 8) |
-            ((input & 0x00FF00FF00FF00FF00FF00FF00FF00FF) << 8);
+        input = ((input & 0xFF00FF00FF00FF00FF00FF00FF00FF00) >> 8) | ((input & 0x00FF00FF00FF00FF00FF00FF00FF00FF) << 8);
 
         // swap 2-byte long pairs
-        input = ((input & 0xFFFF0000FFFF0000FFFF0000FFFF0000) >> 16) |
-            ((input & 0x0000FFFF0000FFFF0000FFFF0000FFFF) << 16);
+        input = ((input & 0xFFFF0000FFFF0000FFFF0000FFFF0000) >> 16) | ((input & 0x0000FFFF0000FFFF0000FFFF0000FFFF) << 16);
 
         // swap 4-byte long pairs
-        input = ((input & 0xFFFFFFFF00000000FFFFFFFF00000000) >> 32) |
-            ((input & 0x00000000FFFFFFFF00000000FFFFFFFF) << 32);
+        input = ((input & 0xFFFFFFFF00000000FFFFFFFF00000000) >> 32) | ((input & 0x00000000FFFFFFFF00000000FFFFFFFF) << 32);
 
         // swap 8-byte long pairs
         return (input >> 64) | (input << 64);
+    }
+
+    function readLittleEndianSigned128(uint128 input) internal pure returns (int128) {
+        input = ((input << 8) & 0xFF00FF00FF00FF00FF00FF00FF00FF00) | ((input >> 8) & 0x00FF00FF00FF00FF00FF00FF00FF00FF);
+        input = ((input << 16) & 0xFFFF0000FFFF0000FFFF0000FFFF0000) | ((input >> 16) & 0x0000FFFF0000FFFF0000FFFF0000FFFF);
+        input = ((input << 32) & 0xFFFFFFFF00000000FFFFFFFF00000000) | ((input >> 32) & 0x00000000FFFFFFFF00000000FFFFFFFF);
+        return int128((input << 64) | ((input >> 64) & 0xFFFFFFFFFFFFFFFF));
     }
 
     function readLittleEndianUnsigned256(uint256 input) internal pure returns (uint256) {
