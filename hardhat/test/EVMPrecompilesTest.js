@@ -2,14 +2,28 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
 describe("EVMPrecompiles", function () {
-  let EVMPrecompiles, evmPrecompiles, signer, messageHash, signature, v, r, s;
+  let EVMPrecompilesFactory,
+    evmPrecompiles,
+    signer,
+    messageHash,
+    signature,
+    v,
+    r,
+    s;
 
   before(async function () {
     [signer] = await ethers.getSigners();
-    EVMPrecompiles = await ethers.getContractFactory("EVMPrecompiles");
-    evmPrecompiles = await EVMPrecompiles.deploy();
-    await evmPrecompiles.waitForDeployment();
-    console.log("Contract address:", evmPrecompiles.target);
+    EVMPrecompilesFactory = await ethers.getContractFactory("EVMPrecompiles");
+    EVMPrecompilesContractAddress = ""; //"0xD74fA95128AA1FeE703A76278bc8659A659CC273" (Deployed Mainnet address)
+    if (ethers.isAddress(EVMPrecompilesContractAddress)) {
+      evmPrecompiles = EVMPrecompilesFactory.attach(
+        EVMPrecompilesContractAddress
+      );
+    } else {
+      evmPrecompiles = await EVMPrecompilesFactory.deploy();
+      await evmPrecompiles.waitForDeployment();
+      console.log("Contract address:", evmPrecompiles.target);
+    }
   });
 
   describe("SignatureVerifier", function () {
@@ -86,7 +100,7 @@ describe("EVMPrecompiles", function () {
 
   // --------------------------------------------------------------------------------- //
   //******** This precompile is still not supported on Neon Devnet and Mainnet *********
-  describe("BigModExp function", function () {
+  /*describe("BigModExp function", function () {
     it("Should correctly calculate base^exponent % modulus using the BigModExp precompile 0x05", async function () {
       // Example values
       const base = ethers.zeroPadValue(ethers.toBeHex(2), 32); // Pad 2 to 32 bytes
@@ -101,7 +115,6 @@ describe("EVMPrecompiles", function () {
       );
       const receipt = await transaction.wait();
       const returnedData = receipt.logs;
-      console.log(returnedData);
 
       // Manually calculate the expected result (2^10 % 1000 = 24), padded to 32 bytes
       const expectedResult = ethers.zeroPadValue(
@@ -112,7 +125,7 @@ describe("EVMPrecompiles", function () {
       // Assert that the result matches the expected result
       expect(returnedData).to.equal(expectedResult);
     });
-  });
+  });*/
   // ------------------------------------------------------------------------------------ //
 
   describe("bn256Add function", function () {
