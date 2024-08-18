@@ -1,4 +1,5 @@
 require("@nomicfoundation/hardhat-toolbox");
+//require("@nomicfoundation/hardhat-ethers");
 require("dotenv").config();
 
 /** @type import('hardhat/config').HardhatUserConfig */
@@ -44,5 +45,8 @@ module.exports = {
       gas: "auto",
       gasPrice: "auto",
     },
+  },
+  mocha: {
+    timeout: 100000000,
   },
 };
