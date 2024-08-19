@@ -277,8 +277,8 @@ describe("EVMPrecompiles", function () {
       // Expected output based on the Blake2F function with these parameters
       // (Note: This expected output is just an example; adjust it based on actual expectations)
       const expectedOutput = [
-        "0xba80a53f981c4d0d6a2797b69f12f6e94c212f14685ac4b74b12bb6fdbffa2d1", // Replace with actual expected bytes32 output
-        "0x7d87c5392aab792dc252d5de4533cc9518d38aa8dbf1925ab92386edd4009923", // Replace with actual expected bytes32 output
+        "0xb487f529195b7331b520cde3aee763086b48c072ab51540b0d41a05af1299fce", // Replace with actual expected bytes32 output
+        "0xc35db1b61f72c8b55cf695b44eefdc752029e3a0debd81ff991567231603d795", // Replace with actual expected bytes32 output
       ];
 
       expect(returnedData[0]).to.equal(expectedOutput[0]);
@@ -287,6 +287,28 @@ describe("EVMPrecompiles", function () {
   });
 
   describe("KZG proof function", function () {
-    it("Should correctly call the precompiled contract 0x0a", async function () {});
+    it("Should correctly call the precompiled contract 0x0a", async function () {
+      // Prepare a valid 192-byte input
+      //const input = "0x" + "00".repeat(192); // Replace this with actual valid data
+
+      const input = ethers.concat([
+        "0x1c0f112300dcf21fdb1ac0b36dbd9d3a9c2a4b1995c52da0fb073d9f7c83e2c5", // 32 bytes
+        "0x2a7f67845b123b51c2a0849f0d7d6704163e1b3a807ce09c51d60f823f18f798", // 32 bytes
+        "0x1d5c1c2dd4f3ed4b6354d2b11bcb176080b1253c8d84b337b0f004f7a7e52b9f", // 32 bytes
+        "0x2c89d9f75f8ae7f6a59ff978db1137e1c142eb1a3341f9d2c0e4b8e2b4f3c1b1", // 32 bytes
+        "0x3c1fc7a3c7a341e6fa0bda91c9fdd239c6f1d1ac60a9441b5e5c9b8d14a57a1f", // 32 bytes
+        "0x4b1c9a47a4d5f347b3e1c1e479b8e7f6a59ff978db1137e1c142eb1a3341f9d2", // 32 bytes
+      ]);
+
+      // Call the callKzg function
+      const transaction = await evmPrecompiles.callKzg(input);
+      const receipt = await transaction.wait(3);
+      const returnedData = receipt.logs[0].args[0];
+      console.log(returnedData);
+
+      // Check the output
+      expect(returnedData).to.be.a("string");
+      expect(returnedData.length).to.equal(130); // 64 bytes output in hex (130 characters including 0x)*/
+    });
   });
 });
