@@ -48,8 +48,10 @@ module.exports = {
       gas: "auto",
       gasPrice: "auto",
     },
-  },
-  mocha: {
-    timeout: 100000000,
+    sepolia: {
+      chainId: 11155111,
+      url: process.env.SEPOLIA_URL,
+      accounts: [process.env.PRIVATE_KEY_OWNER, process.env.USER1_KEY],
+    },
   },
 };
