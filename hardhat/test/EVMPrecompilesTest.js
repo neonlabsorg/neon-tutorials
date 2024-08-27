@@ -15,8 +15,8 @@ describe("EVMPrecompiles", function () {
     [signer] = await ethers.getSigners();
     EVMPrecompilesFactory = await ethers.getContractFactory("EVMPrecompiles");
     EVMPrecompilesContractAddress = "";
-    //"0xba0861e33c7c46F92ae556b479EfcED9032027b0"; (Deployed Sepolia address)
-    //"0xD74fA95128AA1FeE703A76278bc8659A659CC273" (Deployed Mainnet address)
+    //"0xba0861e33c7c46F92ae556b479EfcED9032027b0"; //(Deployed Sepolia address)
+    //"0xD74fA95128AA1FeE703A76278bc8659A659CC273"; //(Deployed Mainnet address)
     if (ethers.isAddress(EVMPrecompilesContractAddress)) {
       evmPrecompiles = EVMPrecompilesFactory.attach(
         EVMPrecompilesContractAddress
@@ -43,7 +43,7 @@ describe("EVMPrecompiles", function () {
       s = splitSig.s;
     });
 
-    it("Should recover the correct address from the signature via EVM precompile 0x01 ecrecover", async function () {
+    it("Should recover the correct address from the signature via EVM precompile ecrecover 0x01", async function () {
       const recoveredAddress = await evmPrecompiles.recoverSignature(
         messageHash,
         v,
@@ -101,8 +101,8 @@ describe("EVMPrecompiles", function () {
   });
 
   // --------------------------------------------------------------------------------- //
-  //******** This precompile is still not supported on Neon Devnet and Mainnet *********
-  /*describe("BigModExp function", function () {
+  //******** This precompile is still not supported on Neon Devnet and Mainnet and will fail *********
+  describe("BigModExp function", function () {
     it("Should correctly calculate base^exponent % modulus using the BigModExp precompile 0x05", async function () {
       // Example values
       const base = ethers.zeroPadValue(ethers.toBeHex(2), 32); // Pad 2 to 32 bytes
@@ -115,7 +115,7 @@ describe("EVMPrecompiles", function () {
         exponent,
         modulus
       );
-      const receipt = await transaction.wait();
+      const receipt = await transaction.wait(3);
       const returnedData = receipt.logs[0].args[0];
 
       // Manually calculate the expected result (2^10 % 1000 = 24), padded to 32 bytes
@@ -127,7 +127,7 @@ describe("EVMPrecompiles", function () {
       // Assert that the result matches the expected result
       expect(returnedData).to.equal(expectedResult);
     });
-  });*/
+  });
   // ------------------------------------------------------------------------------------ //
 
   describe("bn256Add function", function () {
@@ -140,7 +140,7 @@ describe("EVMPrecompiles", function () {
 
       // Call the contract function and get the result
       const transaction = await evmPrecompiles.callBn256Add(ax, ay, bx, by);
-      const receipt = await transaction.wait();
+      const receipt = await transaction.wait(3);
       const returnedData = receipt.logs[0].args[0];
 
       // Manually calculate the expected result (if known)
@@ -165,7 +165,7 @@ describe("EVMPrecompiles", function () {
 
       // Call the contract function and get the result
       const transaction = await evmPrecompiles.callBn256ScalarMul(x, y, scalar);
-      const receipt = await transaction.wait();
+      const receipt = await transaction.wait(3);
       const returnedData = receipt.logs[0].args[0];
 
       // Manually calculate the expected result (if known)
@@ -183,63 +183,12 @@ describe("EVMPrecompiles", function () {
 
   describe("bn256Pairing function", function () {
     it("Should correctly perform bn256 pairing using the precompile 0x08", async function () {
-      // Example valid points in G1 and G2
-      // Note: Replace these with actual valid bn256 points for meaningful results
-      /*const G1_x = ethers.zeroPadValue(ethers.toBeHex(1), 32);
-      const G1_y = ethers.zeroPadValue(ethers.toBeHex(2), 32);
-      const G2_x_0 = ethers.zeroPadValue(ethers.toBeHex(2), 32);
-      const G2_x_1 = ethers.zeroPadValue(ethers.toBeHex(3), 32);
-      const G2_y_0 = ethers.zeroPadValue(ethers.toBeHex(4), 32);
-      const G2_y_1 = ethers.zeroPadValue(ethers.toBeHex(5), 32);
-
-      // Concatenate the inputs for one pair (G1, G2)
-      const input = ethers.concat([G1_x, G1_y, G2_x_0, G2_x_1, G2_y_0, G2_y_1]);*/
-
-      const G1_x = BigInt(
-        "3010198690406615200373504922352659861758983907867017329644089018310584441462"
-      );
-      const G1_y = BigInt(
-        "17861058253836152797273815394432013122766662423622084931972383889279925210507"
-      );
-      const G2_x_0 = BigInt(
-        "2725019753478801796453339367788033689375851816420509565303521482350756874229"
-      );
-      const G2_x_1 = BigInt(
-        "2725019753478801796453339367788033689375851816420509565303521482350756874229"
-      );
-      const G2_y_0 = BigInt(
-        "2512659008974376214222774206987427162027254181373325676825515531566330959255"
-      );
-      const G2_y_1 = BigInt(
-        "2512659008974376214222774206987427162027254181373325676825515531566330959255"
-      );
-
-      // Function to convert BigInt to 32-byte hex string (padded)
-      function toBytes32(bigint) {
-        let hexString = bigint.toString(16);
-        while (hexString.length < 64) {
-          hexString = "0" + hexString; // Pad with leading zeros if necessary
-        }
-        return "0x" + hexString;
-      }
-
-      //console.log(toBytes32(G1_x));
-
-      // Concatenate the inputs for one pair (G1, G2)
-      const input = ethers.concat([
-        toBytes32(G1_x),
-        toBytes32(G1_y),
-        toBytes32(G2_x_0),
-        toBytes32(G2_x_1),
-        toBytes32(G2_y_0),
-        toBytes32(G2_y_1),
-      ]);
-      //console.log(input);
+      const input =
+        "0x2f2ea0b3da1e8ef11914acf8b2e1b32d99df51f5f4f206fc6b947eae860eddb6068134ddb33dc888ef446b648d72338684d678d2eb2371c61a50734d78da4b7225f83c8b6ab9de74e7da488ef02645c5a16a6652c3c71a15dc37fe3a5dcb7cb122acdedd6308e3bb230d226d16a105295f523a8a02bfc5e8bd2da135ac4c245d065bbad92e7c4e31bf3757f1fe7362a63fbfee50e7dc68da116e67d600d9bf6806d302580dc0661002994e7cd3a7f224e7ddc27802777486bf80f40e4ca3cfdb186bac5188a98c45e6016873d107f5cd131f3a3e339d0375e58bd6219347b008122ae2b09e539e152ec5364e7e2204b03d11d3caa038bfc7cd499f8176aacbee1f39e4e4afc4bc74790a4a028aff2c3d2538731fb755edefd8cb48d6ea589b5e283f150794b6736f670d6a1033f9b46c6f5204f50813eb85c8dc4b59db1c5d39140d97ee4d2b36d99bc49974d18ecca3e7ad51011956051b464d9e27d46cc25e0764bb98575bd466d32db7b15f582b2d5c452b36aa394b789366e5e3ca5aabd415794ab061441e51d01e94640b7e3084a07e02c78cf3103c542bc5b298669f211b88da1679b0b64a63b7e0e7bfe52aae524f73a55be7fe70c7e9bfc94b4cf0da1213d2149b006137fcfb23036606f848d638d576a120ca981b5b1a5f9300b3ee2276cf730cf493cd95d64677bbb75fc42db72513a4c1e387b476d056f80aa75f21ee6226d31426322afcda621464d0611d226783262e21bb3bc86b537e986237096df1f82dff337dd5972e32a8ad43e28a78a96a823ef1cd4debe12b6552ea5f";
 
       // Call the contract function
       const transaction = await evmPrecompiles.callBn256Pairing(input);
-      console.log("Call Result:", transaction);
-      const receipt = await transaction.wait();
+      const receipt = await transaction.wait(3);
       const returnedData = receipt.logs[0].args[0];
 
       // Expected result should be either 0 or 1 (depending on whether the pairing equation holds)
@@ -272,7 +221,7 @@ describe("EVMPrecompiles", function () {
 
       // Call the contract function
       const transaction = await evmPrecompiles.callBlake2F(rounds, h, m, t, f);
-      const receipt = await transaction.wait();
+      const receipt = await transaction.wait(3);
       const returnedData = receipt.logs[0].args[0];
 
       // Expected output based on the Blake2F function with these parameters
@@ -287,30 +236,25 @@ describe("EVMPrecompiles", function () {
     });
   });
 
+  // --------------------------------------------------------------------------------- //
+  //******** This precompile is still not supported on Neon Devnet and Mainnet and will fail *********
   describe("KZG proof function", function () {
     it("Should correctly call the precompiled contract 0x0a", async function () {
-      // Prepare a valid 192-byte input
-      //const input = "0x" + "00".repeat(192); // Replace this with actual valid data
-
-      const input = ethers.concat([
-        "0x1c0f112300dcf21fdb1ac0b36dbd9d3a9c2a4b1995c52da0fb073d9f7c83e2c5", // 32 bytes
-        "0x2a7f67845b123b51c2a0849f0d7d6704163e1b3a807ce09c51d60f823f18f798", // 32 bytes
-        "0x1d5c1c2dd4f3ed4b6354d2b11bcb176080b1253c8d84b337b0f004f7a7e52b9f", // 32 bytes
-        "0x2c89d9f75f8ae7f6a59ff978db1137e1c142eb1a3341f9d2c0e4b8e2b4f3c1b1", // 32 bytes
-        "0x3c1fc7a3c7a341e6fa0bda91c9fdd239c6f1d1ac60a9441b5e5c9b8d14a57a1f", // 32 bytes
-        "0x4b1c9a47a4d5f347b3e1c1e479b8e7f6a59ff978db1137e1c142eb1a3341f9d2", // 32 bytes
-      ]);
+      const input =
+        "0x01e798154708fe7789429634053cbf9f99b619f9f084048927333fce637f549b564c0a11a0f704f4fc3e8acfe0f8245f0ad1347b378fbf96e206da11a5d3630624d25032e67a7e6a4910df5834b8fe70e6bcfeeac0352434196bdf4b2485d5a18f59a8d2a1a625a17f3fea0fe5eb8c896db3764f3185481bc22f91b4aaffcca25f26936857bc3a7c2539ea8ec3a952b7873033e038326e87ed3e1276fd140253fa08e9fc25fb2d9a98527fc22a2c9612fbeafdad446cbc7bcdbdcd780af2c16a";
 
       // Call the callKzg function
       const transaction = await evmPrecompiles.callKzg(input);
-      const receipt = await transaction.wait();
-      console.log(receipt);
+      const receipt = await transaction.wait(3);
       const returnedData = receipt.logs[0].args[0];
-      console.log(returnedData);
+
+      const expectedOutput =
+        "0x000000000000000000000000000000000000000000000000000000000000100073eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001";
 
       // Check the output
-      expect(returnedData).to.be.a("string");
+      expect(returnedData).to.equal(expectedOutput);
       expect(returnedData.length).to.equal(130); // 64 bytes output in hex (130 characters including 0x)*/
     });
   });
+  // ------------------------------------------------------------------------------------ //
 });

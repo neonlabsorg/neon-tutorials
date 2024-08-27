@@ -5,9 +5,6 @@ require("dotenv").config();
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
   solidity: "0.8.26",
-  settings: {
-    evmVersion: "cancun",
-  },
   etherscan: {
     apiKey: {
       neonevm: "test",
@@ -41,7 +38,7 @@ module.exports = {
       gasPrice: "auto",
     },
     neonmainnet: {
-      url: "https://neon-proxy-mainnet.solana.p2p.org",
+      url: "https://neon-mainnet.everstake.one",
       accounts: [process.env.PRIVATE_KEY_OWNER, process.env.USER1_KEY],
       chainId: 245022934,
       allowUnlimitedContractSize: false,
