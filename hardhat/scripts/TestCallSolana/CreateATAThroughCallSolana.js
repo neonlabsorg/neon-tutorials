@@ -26,7 +26,7 @@ async function main() {
 
     const connection = new web3.Connection(SOLANA_NODE, "processed");
     const [user1, user2] = await ethers.getSigners();
-    const tokenMintPublicKey = '';
+    const tokenMintPublicKey = 'Jd4M8bfJG3sAkd82RsGWyEXoaBXQP7njFzBwEaCTuDa';
     if (tokenMintPublicKey == '') {
         return console.error('Before proceeding with instructions execution please set value for the tokenMintPublicKey variable.');
     }
@@ -54,7 +54,8 @@ async function main() {
     console.log(payer, 'payer');
 
     const contractPublicKeyInBytes = await TestCallSolana.getNeonAddress(TestCallSolanaAddress);
-    const contractPublicKey = ethers.encodeBase58(contractPublicKeyInBytes);
+    //const contractPublicKey = ethers.encodeBase58(contractPublicKeyInBytes);
+    const contractPublicKey = new web3.PublicKey('AZ2vBaVWUNKFHwWKgZC274iMmsTSaLkd21JvBFBuuwyx');
     console.log(contractPublicKey, 'contractPublicKey');
 
     const user1PublicKeyInBytes = await TestCallSolana.getNeonAddress(user1.address);
@@ -99,6 +100,7 @@ async function main() {
         console.log(tx, 'tx');
         console.log(receipt.logs[0].args, 'receipt args');
     }
+    return;
 
     let ataUser1 = await getAssociatedTokenAddress(
         token,

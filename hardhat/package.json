@@ -33,6 +33,7 @@
     "typescript": "^5.4.5"
   },
   "dependencies": {
+    "@aave/core-v3": "^1.19.3",
     "@coral-xyz/anchor": "^0.29.0",
     "@ethersproject/address": "^5.7.0",
     "@metaplex-foundation/js": "^0.20.1",
