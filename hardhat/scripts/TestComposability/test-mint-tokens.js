@@ -32,7 +32,7 @@ async function main() {
     const mintAuthority = await testComposability.getNeonAddress(testComposability.target);
     const recipientATA = await testComposability.ata();
 
-    console.log('\nCalling testComposability.testMintTo: ')
+    console.log('\nCalling testComposability.testMintTokens: ')
 
     let tx = await testComposability.testMintTokens(
         tokenMint,
@@ -55,7 +55,9 @@ async function main() {
     console.log("\n")
 
     const solanaConnection = new web3.Connection(process.env.SOLANA_NODE, "processed");
-    const info = await solanaConnection.getTokenAccountBalance(new web3.PublicKey(ethers.encodeBase58(recipientATA)));
+    const info = await solanaConnection.getTokenAccountBalance(
+        new web3.PublicKey(ethers.encodeBase58(recipientATA))
+    );
     console.log(info, 'recipient ATA info')
 }
 

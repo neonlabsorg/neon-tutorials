@@ -121,4 +121,43 @@ library LibSPLTokenProgram {
             bytes8(amountLE) // Amount (right-padded little-endian)
         );
     }
+
+    /// @notice Helper function to format a `transfer` instruction
+    /// @param senderATA The sender's associated token account to be debited
+    /// @param recipientATA The recipient's associated token account to be credited
+    /// @param sender The sender's account which owns the sender's associated token account to be debited
+    /// @param amount The amount of token to be transferred
+    function formatTransferInstruction(
+        bytes32 senderATA,
+        bytes32 recipientATA,
+        bytes32 sender,
+        uint64 amount
+    ) public pure returns (
+        bytes32[] memory accounts,
+        bool[] memory isSigner,
+        bool[] memory isWritable,
+        bytes memory data
+    ) {
+        accounts = new bytes32[](3);
+        accounts[0] = senderATA;
+        accounts[1] = recipientATA;
+        accounts[2] = sender;
+
+        isSigner = new bool[](3);
+        isSigner[0] = false;
+        isSigner[1] = false;
+        isSigner[2] = true;
+
+        isWritable = new bool[](3);
+        isWritable[0] = true;
+        isWritable[1] = true;
+        isWritable[2] = false;
+
+        // Get amount in right-padded little-endian format
+        bytes32 amountLE = LibUtils.convertUintToLittleEndianBytes32(uint256(amount));
+        data = abi.encodePacked(
+            bytes1(0x03), // Instruction variant (see: https://github.com/solana-program/token/blob/08aa3ccecb30692bca18d6f927804337de82d5ff/program/src/instruction.rs#L506)
+            bytes8(amountLE) // Amount (right-padded little-endian)
+        );
+    }
 }

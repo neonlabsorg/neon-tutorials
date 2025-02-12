@@ -53,7 +53,7 @@ module.exports = {
   networks: {
   curvestand: {
       url: process.env.NEON_EVM_NODE,
-      accounts: [process.env.PRIVATE_KEY_OWNER],
+      accounts: [process.env.DEPLOYER_KEY, process.env.PRIVATE_KEY_OWNER, process.env.USER1_KEY],
       allowUnlimitedContractSize: false,
       gasMultiplier: 2,
       maxFeePerGas: 10000,

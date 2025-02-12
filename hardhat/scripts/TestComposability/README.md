@@ -32,12 +32,15 @@ method to create the account.
 
 * The `test-create-init-ata` script lets you format and execute _Solana_'s **SPL Token** program 
 `initializeAccount2` instruction after creating an associated token account using _NeonEVM_ composability's 
-`createResource` method to create the account. Make sure run the `test-create-init-token-mint` script first on the same
+`createResource` method. Make sure run the `test-create-init-token-mint` script first on the same 
 `TestComposability` contract instance before running this script.
 
-* The `test-mint-tokens` script lets you format and execute _Solana_'s **SPL Token** program
+* The `test-mint-tokens` script lets you format and execute _Solana_'s **SPL Token** program 
 `mintTo` instruction, minting SPL tokens to a recipient's associated token account. Make sure run the 
-`test-create-init-token-mint` and `test-create-init-ata` scripts first on the same `TestComposability` contract instance
+`test-create-init-token-mint` and `test-create-init-ata` scripts first on the same `TestComposability` contract instance 
 before running this script.
 
-
+* The `test-transfer-tokens` script lets you format and execute _Solana_'s **SPL Token** program 
+`transfer` instruction, transferring SPL tokens to a recipient's associated token account. Make sure run the 
+`test-create-init-token-mint`, `test-create-init-ata` and `test-mint-tokens` scripts first on the same 
+`TestComposability` contract instance before running this script.

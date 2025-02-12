@@ -124,7 +124,8 @@ contract TestComposability {
             LibSPLTokenProgram.ATA_RENT_EXEMPT_BALANCE, // lamports
             LibSPLTokenProgram.TOKEN_PROGRAM_ID // Owner must be SPL Associated Token program
         );
-
+        // This contract owns the sender's associated token account
+        bytes32 thisContract = CALL_SOLANA.getNeonAddress(address(this));
         // Format initializeAccount2 instruction
         (   bytes32[] memory accounts,
             bool[] memory isSigner,
@@ -133,7 +134,7 @@ contract TestComposability {
         ) = LibSPLTokenProgram.formatInitializeAccount2Instruction(
             ata,
             tokenMint,
-            owner
+            thisContract  // ATA owner
         );
         // Prepare initializeAccount2 instruction
         bytes memory initializeAccount2Ix = CallSolanaHelperLib.prepareSolanaInstruction(
@@ -174,5 +175,47 @@ contract TestComposability {
         );
         // Execute mintTo instruction
         CALL_SOLANA.execute(0, mintToIx);
+    }
+
+    function testTransferTokens(
+        bytes32 _tokenMint,
+        uint8 senderATANonce,
+        bytes32 recipientATA,
+        uint64 amount
+    ) external {
+        // Sender's Solana account is derived from msg.sender and must be the owner
+        bytes32 sender = CALL_SOLANA.getNeonAddress(msg.sender);
+        // We derive the sender's associated token account from the sender account, the token mint account and the nonce
+        // that was used to create the sender's associated token account through this contract
+        bytes32 senderATA = CALL_SOLANA.getResourceAddress(sha256(abi.encodePacked(
+            sender,
+            LibSPLTokenProgram.TOKEN_PROGRAM_ID,
+            _tokenMint,
+            senderATANonce,
+            LibSPLTokenProgram.ASSOCIATED_TOKEN_PROGRAM_ID
+        )));
+        // This contract owns the sender's associated token account
+        bytes32 thisContract = CALL_SOLANA.getNeonAddress(address(this));
+        // Format transfer instruction
+        (   bytes32[] memory accounts,
+            bool[] memory isSigner,
+            bool[] memory isWritable,
+            bytes memory data
+        ) = LibSPLTokenProgram.formatTransferInstruction(
+            senderATA,
+            recipientATA,
+            thisContract, // ATA owner
+            amount
+        );
+        // Prepare mintTo instruction
+        bytes memory transferIx = CallSolanaHelperLib.prepareSolanaInstruction(
+            LibSPLTokenProgram.TOKEN_PROGRAM_ID,
+            accounts,
+            isSigner,
+            isWritable,
+            data
+        );
+        // Execute mintTo instruction
+        CALL_SOLANA.execute(0, transferIx);
     }
 }

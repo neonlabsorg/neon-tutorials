@@ -1,21 +1,21 @@
 module.exports = {
     libUtils: {
-        curvestand: "0x82f0c4Ec9159C6b57c378AaBF997EE40cF3c2396",
+        curvestand: "0xEc20b396016d26771D9c7BA6AeCd148aD908eE34",
         neondevnet: "",
         neonmainnet: "",
     },
     libSystemProgram: {
-        curvestand: "0x3602A4BA9472121D8559E365fd9cc7aBE9Be9936",
+        curvestand: "0xbEA406dF250A838098f4a15954508590865E3e21",
         neondevnet: "",
         neonmainnet: "",
     },
     libSPLTokenProgram: {
-        curvestand: "0x89E24204f07a2339811E9c8245ECCd2F78016495",
+        curvestand: "0x8b7025f5cf1E765572ee3c93a0398Ba857503786",
         neondevnet: "",
         neonmainnet: "",
     },
     testComposability: {
-        curvestand: "0x461d562Cc57233a62C7C3a6d9317F5C9B9c683B2",
+        curvestand: "0x0c1535eca8E85Bf2Cba77029191e5F96104D3BF7",
         neondevnet: "",
         neonmainnet: "",
     }
