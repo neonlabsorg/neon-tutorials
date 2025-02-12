@@ -428,6 +428,8 @@ const config = {
         salts = [];
       }
 
+      console.log("**Instructions:", instructions);
+
       let instructionsDataArr = [];
       for (let i = 0, len = instructions.length; i < len; ++i) {
         instructionsDataArr.push(

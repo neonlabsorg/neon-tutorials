@@ -17,7 +17,7 @@ const web3 = require("@solana/web3.js");
 );*/
 
 const owner = new web3.PublicKey(
-  "JEEgK7yptqdU5j1P1TQDck8FibVtdYRWJCqLJMuTa3pF"
+  "H3Y9Mv8qWVgbSfxejL9UJ5SVcw9svXGuSu3qiYerb8R5"
 );
 
 /*const connection = new Connection(
