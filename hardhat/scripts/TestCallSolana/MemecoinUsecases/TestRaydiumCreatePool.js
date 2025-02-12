@@ -1,4 +1,4 @@
-const { ethers } = require("hardhat");
+/*const { ethers } = require("hardhat");
 const web3 = require("@solana/web3.js");
 const {
   getAssociatedTokenAddress,
@@ -207,7 +207,7 @@ async function main() {
       units: 600000,
       microLamports: 46591500,
     },*/
-  });
+/*});
   console.log(addInstructions.builder, "createPoolOnRaydium");
   console.log(addInstructions.builder.instructions[0], "createPoolOnRaydium0");
 
@@ -257,4 +257,4 @@ async function main() {
 main().catch((error) => {
   console.error(error);
   process.exitCode = 1;
-});
+});*/

@@ -30,8 +30,8 @@ async function main() {
     ethers.provider
   );
 
-  const TNEON2 = new ethers.Contract(
-    config.DATA.EVM.ADDRESSES.TNEON2,
+  const TNEON3 = new ethers.Contract(
+    config.DATA.EVM.ADDRESSES.TNEON3,
     config.DATA.EVM.ABIs.ERC20ForSPL,
     ethers.provider
   );
@@ -87,8 +87,8 @@ async function main() {
   await tx.wait(1);
   console.log(tx, "tx");
 
-  console.log("\n ***USER*** Broadcast TNEON2 approval ... ");
-  tx = await TNEON2.connect(owner).approve(TestCallSolanaAddress, 10 * 10 ** 6);
+  console.log("\n ***USER*** Broadcast TNEON3 approval ... ");
+  tx = await TNEON3.connect(owner).approve(TestCallSolanaAddress, 10 * 10 ** 6);
   await tx.wait(1);
   console.log(tx, "tx");
 
@@ -109,28 +109,28 @@ async function main() {
     );
   }
 
-  const ataContractTNEON2 = await getAssociatedTokenAddress(
-    new web3.PublicKey(config.DATA.SVM.ADDRESSES.TNEON2),
+  const ataContractTNEON3 = await getAssociatedTokenAddress(
+    new web3.PublicKey(config.DATA.SVM.ADDRESSES.TNEON3),
     new web3.PublicKey(contractPublicKey),
     true
   );
   try {
-    await getAccount(connection, ataContractTNEON2);
+    await getAccount(connection, ataContractTNEON3);
   } catch (err) {
     return console.error(
       "Account " +
         contractPublicKey +
         " does not have initialized ATA account for TokenB ( " +
-        config.DATA.SVM.ADDRESSES.TNEON2 +
+        config.DATA.SVM.ADDRESSES.TNEON3 +
         " )."
     );
   }
 
   console.log(ataContractWSOL, "ataContractWSOL");
-  console.log(ataContractTNEON2, "ataContractTNEON2");
+  console.log(ataContractTNEON3, "ataContractTNEON3");
 
   const marketId = new web3.PublicKey(
-    "3Q2N1a1eKpdeFgPG1QCmNpXy1DW3kUqcrrETWsknw4WW"
+    "FKHpdEtitWwGNXo9hYa3CTcVo1LLWDyexC7eM4Sferxz"
   );
 
   //const txVersion = TxVersion.V0;
@@ -210,7 +210,7 @@ async function main() {
 
   // /BUILD RAYDIUM CREATE POOL INSTRUCTION
 
-  console.log("\n ***OWNER*** Broadcast Raydium create WSOL/TNEON2 pool ... ");
+  console.log("\n ***OWNER*** Broadcast Raydium create WSOL/TNEON3 pool ... ");
   solanaTx = new web3.Transaction();
   solanaTx.add(addInstructions.builder.instructions[0]);
   solanaTx.add(addInstructions.builder.instructions[1]);
