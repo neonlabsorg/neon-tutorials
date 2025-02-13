@@ -10,12 +10,12 @@ module.exports = {
         neonmainnet: "",
     },
     libSPLTokenProgram: {
-        curvestand: "0x9bF444A08182535dc0811CA86D374Ef493C1a746",
+        curvestand: "0x42F8f616fd84c2D3bc7C238423744132F3BB743B",
         neondevnet: "",
         neonmainnet: "",
     },
     testComposability: {
-        curvestand: "0xD135f9E9cA4722fFAE8384EaAfdB48C8CA88a2CD",
+        curvestand: "0x3B76B96Bf4a415AB32dE8e0Cf976F40442F3f235",
         neondevnet: "",
         neonmainnet: "",
     }

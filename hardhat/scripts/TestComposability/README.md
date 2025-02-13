@@ -102,3 +102,6 @@ NeonEVM user ATA to a random Solana user ATA. Make sure to run the `test-create-
 `createSetAuthority` instruction in a way that updates a token's mint authority to a new account. Make sure to run the
 `test-create-init-token-mint` script first before running this script.
 
+* The `test-revoke-appoval` script lets you format and execute _Solana_'s **SPL Token** program `revoke` instruction to 
+revoke all delegation from from NeonEVM deployer ATA.  Make sure to run the `test-create-init-token-mint` and 
+`test-create-init-ata` scripts first before running this script.

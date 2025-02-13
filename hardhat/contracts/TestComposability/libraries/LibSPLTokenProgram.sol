@@ -195,4 +195,34 @@ library LibSPLTokenProgram {
             newAuthority
         );
     }
+
+    /// @notice Helper function to format a `revoke` instruction in order to revoke all delegation granted by an
+    // associated token account
+    /// @param ata The associated token account for which we want to revoke all delegation
+    /// @param owner The account owning the associated token account for which we want to revoke all delegation
+    function formatRevokeInstruction(
+        bytes32 ata,
+        bytes32 owner
+    ) public pure returns (
+        bytes32[] memory accounts,
+        bool[] memory isSigner,
+        bool[] memory isWritable,
+        bytes memory data
+    ) {
+        accounts = new bytes32[](2);
+        accounts[0] = ata;
+        accounts[1] = owner;
+
+        isSigner = new bool[](2);
+        isSigner[0] = false;
+        isSigner[1] = true;
+
+        isWritable = new bool[](2);
+        isWritable[0] = true;
+        isWritable[1] = false;
+
+        data = abi.encodePacked(
+            bytes1(0x05) // Instruction variant (see: https://github.com/solana-program/token/blob/08aa3ccecb30692bca18d6f927804337de82d5ff/program/src/instruction.rs#L513)
+        );
+    }
 }

@@ -1,37 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
+import { TestCallSolana } from '../TestCallSolana/TestCallSolana.sol';
+
 import { LibSystemProgram } from './libraries/LibSystemProgram.sol';
 import { LibSPLTokenProgram } from './libraries/LibSPLTokenProgram.sol';
 import { CallSolanaHelperLib } from './libraries/CallSolanaHelperLib.sol';
 
-import { ICallSolana } from './interfaces/ICallSolana.sol';
-
-contract TestComposability {
-    ICallSolana public constant CALL_SOLANA = ICallSolana(0xFF00000000000000000000000000000000000006);
-
+contract TestComposability is TestCallSolana {
     bytes32 public tokenMint;
     bytes32 public ata;
-
-    function getPayer() external view returns(bytes32) {
-        return CALL_SOLANA.getPayer();
-    }
-
-    function getNeonAddress(address _address) external view returns(bytes32) {
-        return CALL_SOLANA.getNeonAddress(_address);
-    }
-
-    function getSolanaPDA(bytes32 program_id, bytes memory seeds) external view returns(bytes32) {
-        return CALL_SOLANA.getSolanaPDA(program_id, seeds);
-    }
-
-    function getResourceAddress(bytes memory seed) external view returns(bytes32) {
-        return CALL_SOLANA.getResourceAddress(keccak256(seed));
-    }
-
-    function createResource(bytes memory seed, uint64 space, uint64 lamports, bytes32 owner) external returns(bytes32) {
-        return CALL_SOLANA.createResource(keccak256(seed), space, lamports, owner);
-    }
 
     function getCreateWithSeedAccount(
         bytes32 basePubKey,
@@ -289,5 +267,43 @@ contract TestComposability {
         );
         // Execute createSetAuthority instruction
         CALL_SOLANA.execute(0, createSetAuthorityIx);
+    }
+
+    function testRevokeApproval(
+        bytes32 _tokenMint,
+        uint8 ataNonce
+    ) external {
+        // User's Solana account is derived from msg.sender
+        bytes32 user = CALL_SOLANA.getNeonAddress(msg.sender);
+        // Authentication: we derive the user's associated token account from the user account, the token mint account
+        // and the nonce that was used to create the user's ATA through this contract
+        bytes32 userATA = CALL_SOLANA.getResourceAddress(sha256(abi.encodePacked(
+            user,
+            LibSPLTokenProgram.TOKEN_PROGRAM_ID,
+            _tokenMint,
+            ataNonce,
+            LibSPLTokenProgram.ASSOCIATED_TOKEN_PROGRAM_ID
+        )));
+        // This contract owns the user's associated token account
+        bytes32 thisContract = CALL_SOLANA.getNeonAddress(address(this));
+        // Format revoke instruction
+        (   bytes32[] memory accounts,
+            bool[] memory isSigner,
+            bool[] memory isWritable,
+            bytes memory data
+        ) = LibSPLTokenProgram.formatRevokeInstruction(
+            userATA,
+            thisContract // ATA owner
+        );
+        // Prepare revoke instruction
+        bytes memory revokeIx = CallSolanaHelperLib.prepareSolanaInstruction(
+            LibSPLTokenProgram.TOKEN_PROGRAM_ID,
+            accounts,
+            isSigner,
+            isWritable,
+            data
+        );
+        // Execute createSetAuthority instruction
+        CALL_SOLANA.execute(0, revokeIx);
     }
 }

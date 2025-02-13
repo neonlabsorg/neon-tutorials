@@ -1,7 +1,6 @@
 const { ethers, network, run } = require("hardhat")
 const web3 = require("@solana/web3.js");
 const { airdropNEON, deployTestComposabilityContract, getSolanaTransactions } = require("./utils");
-const {createTransferInstruction} = require("@solana/spl-token");
 
 async function main() {
     await run("compile")
@@ -29,9 +28,6 @@ async function main() {
     const solanaConnection = new web3.Connection(process.env.SOLANA_NODE, "processed");
 
     const testComposability = await deployTestComposabilityContract()
-
-    const neonEVMUserATAInBytes = await testComposability.ata() // NeonEVM user ata should be the last created ATA registered in TestComposability contract
-    console.log('NeonEVM user ATA: ' + ethers.encodeBase58(neonEVMUserATAInBytes))
 
     // =================================== Create and initialize new ATA for Solana recipient ====================================
 
@@ -72,14 +68,20 @@ async function main() {
 
     // =================================== Transfer SPL token amount from deployer ATA to NeonEVM user ATA ====================================
 
-    const tokenMint = await testComposability.tokenMint()
     const senderATANonce = 255 // This must be the same nonce that was used to create the sender's ATA through
     // the TestComposability contract
+    const neonEVMUser = (await ethers.getSigners())[1]
+    const neonEVMUserATAInBytes = await testComposability.getAssociatedTokenAccount(
+        tokenMintInBytes,
+        neonEVMUser.address,
+        255
+    );
+    console.log('NeonEVM user ATA: ' + ethers.encodeBase58(neonEVMUserATAInBytes))
 
     console.log('\nCalling testComposability.testTransferTokens: ')
 
     tx = await testComposability.connect(deployer).testTransferTokens(
-        tokenMint,
+        tokenMintInBytes,
         senderATANonce,
         neonEVMUserATAInBytes,
         100 * 10 ** 9 // amount (transfer 10 tokens)
@@ -105,12 +107,11 @@ async function main() {
 
     const neonEVMUserATANonce = 255 // This must be the same nonce that was used to create the NeonEVM user's ATA through
     // the TestComposability contract
-    const neonEVMUser = (await ethers.getSigners())[1]
 
     console.log('\nCalling testComposability.testTransferTokens: ')
 
     tx = await testComposability.connect(neonEVMUser).testTransferTokens(
-        tokenMint,
+        tokenMintInBytes,
         neonEVMUserATANonce,
         solanaRecipientATAInBytes,
         10 * 10 ** 9 // amount (transfer 10 tokens)

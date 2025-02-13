@@ -33,7 +33,7 @@ async function main() {
     // =================================== Update SPL token mint authority ====================================
 
     const newAuthority = (await web3.Keypair.generate()).publicKey.toBuffer()
-    const seed = 'myTokenMintSeed00';
+    const seed = 'myTokenMintSeed03';
 
     console.log('\nCalling testComposability.testUpdateMintAuthority: ')
 
