@@ -39,13 +39,14 @@ async function main() {
     console.log("\nRecipient address: " + recipient.address)
 
     const tokenMintInBytes =  await testComposability.tokenMint()
-    const ownerPublicKeyInBytes = await testComposability.getNeonAddress(recipient.address)
+    const recipientPublicKeyInBytes = await testComposability.getNeonAddress(recipient.address)
 
     console.log('\nCalling testComposability.testCreateInitializeATA: ')
 
     let tx = await testComposability.testCreateInitializeATA(
         tokenMintInBytes,
-        ownerPublicKeyInBytes,
+        recipientPublicKeyInBytes, // Pass recipient public key as owner so that the recipient controls the ATA through TestComposability contract
+        Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex'), // Leave tokenOwner field empty so that TestComposability contract owns the ATA
         255 // nonce
     )
 

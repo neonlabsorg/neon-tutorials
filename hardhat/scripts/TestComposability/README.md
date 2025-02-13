@@ -8,39 +8,96 @@ _Solana_'s **System** and **SPL Token** programs.
 
 This work is an example of what program-specific **Solidity** libraries for _NeonEVM_ composability could look like.
 
-## LibSystemProgram
+## LibSystemProgram library
 
 This library provides helper functions for formatting instructions intended to be executed by _Solana_'s **System** 
 program.
 
-## LibSPLTokenProgram
+## LibSPLTokenProgram library
 
 This library provides helper functions for formatting instructions intended to be executed by _Solana_'s **SPL Token** 
 program.
 
+## LibUtils library
+
+This library provides helper functions to **LibSystemProgram** and **LibSPLTokenProgram** libraries.
+
+## TestComposability contract
+
+This contract demonstrates how **LibSystemProgram** and **LibSPLTokenProgram** libraries can be used in practice to 
+interact with Solana's System and SPL Token programs.
+
+### Token accounts ownership and authentication
+
+The **TestComposability** contract provides its users with methods to create and initialize SPL token mints and 
+associated token accounts, as well as to mint and transfer tokens using those accounts. It features a built-in 
+authentication logic ensuring that users remain in control of created accounts.
+
+#### SPL token mint ownership and authentication
+
+The `testCreateInitializeTokenMint` function takes a `seed` parameter as input which is used along with 
+`msg.sender` to derive the created token mint account. While the **TestComposability** contract is given mint/freeze 
+authority on the created token mint account, the `testMintTokens` function grants `msg.sender` permission to mint tokens
+by providing the `seed` that was used to create the token mint account.
+
+#### Associated token account ownership and authentication
+
+The `testCreateInitializeATA` function can be used for three different purposes:
+
+* To create and in initialize an associated token account (ATA) to be used by `msg.sender` to send tokens through the 
+**TestComposability** contract. In this case, both the `owner` and `tokenOwner` parameters passed to the function should
+be left empty. The ATA to be created is derived from `msg.sender` and a `nonce` (that can be incremented to create 
+different ATAs). The owner of the ATA is the **TestComposability** contract. The `testTransferTokens` function grants 
+`msg.sender` permission to transfer tokens from this ATA by providing the `nonce` that was used to create the ATA.
+
+* To create and initialize an associated token account (ATA) to be used by a third party `user` NeonEVM account through 
+the **TestComposability** contract. In this case, the `owner` parameter passed to the function should be  
+`TestComposability.getNeonAddress(user)` and the `tokenOwner` parameter should be left empty. The ATA to be created is 
+derived from the `user` account and a `nonce` (that can be incremented to create different ATAs). The owner of the ATA 
+is the **TestComposability** contract. The `testTransferTokens` function grants `user` permission to transfer tokens 
+from this ATA by providing the `nonce` that was used to create the ATA.
+
+* To create and in initialize an associated token account (ATA) to be used by a third party `solanaUser` _Solana_ account
+to send tokens directly on _Solana_ without interacting with the **TestComposability** contract. In this case, both the 
+`owner` and the `tokenOwner` parameters passed to the function should be `solanaUser`. The ATA to be created is derived 
+from the `solanaUser` account and a `nonce` (that can be incremented to create different ATAs). The owner of the ATA is 
+the `solanaUser` account. The `solanaUser` account cannot transfer tokens from this ATA by interacting with the 
+**TestComposability** contract, instead it must interact directly with the **SPL Token** program on _Solana_ by signing 
+and executing a `transfer` instruction.
+
 ## Scripts
 
 The `TestComposability` contract is deployed along with imported libraries at the beginning of each script, unless the 
-`config.js` file already contains addresses for these contracts and libraries.
+`config.js` file already contains addresses for these contracts and libraries. When running several scripts in a row 
+which depend on each other's execution (like for instance: `test-create-init-token-mint` followed by 
+`test-create-init-ata` then `test-mint-tokens`), remember to add the addresses of deployed contracts and libraries to 
+the `config.js` file **after running the first script** so that subsequent scripts know to re-use those same contracts 
+and libraries.
+
+### System Program interactions
 
 * The `test-create-account-with-seed.js` script lets you format and execute _Solana_'s **System** program 
 `createAccountWithSeed` instruction.
 
+### SPL Token Program interactions
+
 * The `test-create-init-token-mint` script lets you format and execute _Solana_'s **SPL Token** program 
 `initializeMint2` instruction after creating a SPL token mint account using _NeonEVM_ composability's `createResource` 
-method to create the account.
+method.
 
 * The `test-create-init-ata` script lets you format and execute _Solana_'s **SPL Token** program 
 `initializeAccount2` instruction after creating an associated token account using _NeonEVM_ composability's 
-`createResource` method. Make sure run the `test-create-init-token-mint` script first on the same 
-`TestComposability` contract instance before running this script.
+`createResource` method. Make sure to run the `test-create-init-token-mint` script first before running this script.
 
 * The `test-mint-tokens` script lets you format and execute _Solana_'s **SPL Token** program 
-`mintTo` instruction, minting SPL tokens to a recipient's associated token account. Make sure run the 
-`test-create-init-token-mint` and `test-create-init-ata` scripts first on the same `TestComposability` contract instance 
-before running this script.
+`mintTo` instruction, minting SPL tokens to a recipient's associated token account. Make sure to run the 
+`test-create-init-token-mint` and `test-create-init-ata` scripts first before running this script.
 
 * The `test-transfer-tokens` script lets you format and execute _Solana_'s **SPL Token** program 
-`transfer` instruction, transferring SPL tokens to a recipient's associated token account. Make sure run the 
-`test-create-init-token-mint`, `test-create-init-ata` and `test-mint-tokens` scripts first on the same 
-`TestComposability` contract instance before running this script.
+`transfer` instruction, transferring SPL tokens to a recipient's associated token account. Make sure to run the 
+`test-create-init-token-mint`, `test-create-init-ata` and `test-mint-tokens` scripts first before running this script.
+
+* The `test-update-mint-authority` script lets you format and execute _Solana_'s **SPL Token** program
+  `createSetAuthority` instruction in a way that updates a token's mint authority to a new account. Make sure to run the
+  `test-create-init-token-mint` script first before running this script.
+

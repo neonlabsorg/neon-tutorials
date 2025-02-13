@@ -1,6 +1,6 @@
 const { ethers, network, run } = require("hardhat")
 const web3 = require("@solana/web3.js");
-const { getMint } = require('@solana/spl-token');
+const { createSetAuthorityInstruction, getMint } = require('@solana/spl-token');
 const { airdropNEON, deployTestComposabilityContract, getSolanaTransactions } = require("./utils");
 
 async function main() {
@@ -30,16 +30,16 @@ async function main() {
 
     const testComposability = await deployTestComposabilityContract()
 
-    // =================================== Create and initialize new SPL token mint ====================================
+    // =================================== Update SPL token mint authority ====================================
 
+    const newAuthority = (await web3.Keypair.generate()).publicKey.toBuffer()
     const seed = 'myTokenMintSeed00';
-    const decimals = 9
 
-    console.log('\nCalling testComposability.testCreateInitializeTokenMint: ')
+    console.log('\nCalling testComposability.testUpdateMintAuthority: ')
 
-    let tx = await testComposability.testCreateInitializeTokenMint(
-        Buffer.from(seed), // Seed to generate new SPL token mint account on-chain
-        decimals, // Decimals value for the new SPL token to be created on Solana
+    let tx = await testComposability.testUpdateMintAuthority(
+        Buffer.from(seed), // Seed that was used to generate SPL token mint
+        newAuthority,
     )
 
     console.log('\nNeonEVM transaction hash: ' + tx.hash)
@@ -57,9 +57,9 @@ async function main() {
     console.log("\n")
 
     const tokenMint = await testComposability.tokenMint()
-    console.log(ethers.encodeBase58(tokenMint), 'Created token mint\n')
+    console.log(ethers.encodeBase58(tokenMint), 'Updated token mint\n')
     const info = await getMint(solanaConnection, new web3.PublicKey(ethers.encodeBase58(tokenMint)));
-    console.log(info, 'Created token mint info')
+    console.log(info, 'Updated token mint info')
 }
 
 main()

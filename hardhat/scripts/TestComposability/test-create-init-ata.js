@@ -32,13 +32,13 @@ async function main() {
     // =================================== Create and initialize new SPL associated token account ====================================
 
     const tokenMintInBytes =  await testComposability.tokenMint()
-    const ownerPublicKeyInBytes = await testComposability.getNeonAddress(deployer.address) // deployer is ATA owner
 
     console.log('\nCalling testComposability.testCreateInitializeATA: ')
 
     let tx = await testComposability.testCreateInitializeATA(
         tokenMintInBytes,
-        ownerPublicKeyInBytes,
+        Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex'), // Leave owner field empty so that msg.sender controls the ATA through TestComposability contract
+        Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex'), // Leave tokenOwner field empty so that TestComposability contract owns the ATA
         255 // nonce
     )
 

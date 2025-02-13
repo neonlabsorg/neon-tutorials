@@ -160,4 +160,39 @@ library LibSPLTokenProgram {
             bytes8(amountLE) // Amount (right-padded little-endian)
         );
     }
+
+    /// @notice Helper function to format a `createSetAuthority` instruction in order to update a SPL token's mint
+    /// authority
+    /// @param tokenMint The token mint account to be updated
+    /// @param currentAuthority The current token mint authority to be revoked
+    /// @param newAuthority The new mint authority to be set
+    function formatUpdateMintAuthorityInstruction(
+        bytes32 tokenMint,
+        bytes32 currentAuthority,
+        bytes32 newAuthority
+    ) public pure returns (
+        bytes32[] memory accounts,
+        bool[] memory isSigner,
+        bool[] memory isWritable,
+        bytes memory data
+    ) {
+        accounts = new bytes32[](2);
+        accounts[0] = tokenMint;
+        accounts[1] = currentAuthority;
+
+        isSigner = new bool[](2);
+        isSigner[0] = false;
+        isSigner[1] = true;
+
+        isWritable = new bool[](2);
+        isWritable[0] = true;
+        isWritable[1] = false;
+
+        data = abi.encodePacked(
+            bytes1(0x06), // Instruction variant (see: https://github.com/solana-program/token/blob/08aa3ccecb30692bca18d6f927804337de82d5ff/program/src/instruction.rs#L514)
+            bytes1(0x00), // MintTokens authority type (see: https://github.com/solana-program/token/blob/08aa3ccecb30692bca18d6f927804337de82d5ff/program/src/instruction.rs#L744)
+            bytes1(0x01), // Flag (how is it used?)
+            newAuthority
+        );
+    }
 }

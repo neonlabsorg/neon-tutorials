@@ -28,15 +28,13 @@ async function main() {
     const testComposability = await deployTestComposabilityContract()
 
     // =================================== Mint SPL token amount to recipient ATA ====================================
-    const tokenMint = await testComposability.tokenMint();
-    const mintAuthority = await testComposability.getNeonAddress(testComposability.target);
+    const seed = 'myTokenMintSeed00';
     const recipientATA = await testComposability.ata();
 
     console.log('\nCalling testComposability.testMintTokens: ')
 
     let tx = await testComposability.testMintTokens(
-        tokenMint,
-        mintAuthority,
+        Buffer.from(seed), // Seed that was used to generate SPL token mint
         recipientATA, // Solana recipient ATA
         1000 * 10 ** 9 // amount (mint 1000 tokens)
     )
