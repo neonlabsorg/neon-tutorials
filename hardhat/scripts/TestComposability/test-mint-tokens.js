@@ -27,15 +27,21 @@ async function main() {
 
     const testComposability = await deployTestComposabilityContract()
 
-    // =================================== Mint SPL token amount to recipient ATA ====================================
-    const seed = 'myTokenMintSeed00';
-    const recipientATA = await testComposability.ata();
+    // =================================== Mint SPL token amount to deployer ATA ====================================
+
+    const seed = 'myTokenMintSeed03';
+    const tokenMint = await testComposability.tokenMint()
+    const deployerATA = await testComposability.getAssociatedTokenAccount(
+        tokenMint,
+        deployer.address,
+        255
+    );
 
     console.log('\nCalling testComposability.testMintTokens: ')
 
-    let tx = await testComposability.testMintTokens(
+    let tx = await testComposability.connect(deployer).testMintTokens(
         Buffer.from(seed), // Seed that was used to generate SPL token mint
-        recipientATA, // Solana recipient ATA
+        deployerATA, // Solana recipient ATA
         1000 * 10 ** 9 // amount (mint 1000 tokens)
     )
 
@@ -54,9 +60,9 @@ async function main() {
 
     const solanaConnection = new web3.Connection(process.env.SOLANA_NODE, "processed");
     const info = await solanaConnection.getTokenAccountBalance(
-        new web3.PublicKey(ethers.encodeBase58(recipientATA))
+        new web3.PublicKey(ethers.encodeBase58(deployerATA))
     );
-    console.log(info, 'recipient ATA info')
+    console.log(info, 'Deployer ATA info')
 }
 
 main()

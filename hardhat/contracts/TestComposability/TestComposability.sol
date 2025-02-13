@@ -41,6 +41,20 @@ contract TestComposability {
         return LibSystemProgram.getCreateWithSeedAccount(basePubKey, programId, seed);
     }
 
+    function getAssociatedTokenAccount(
+        bytes32 _tokenMint,
+        address user,
+        uint8 nonce
+    ) public view returns(bytes32) {
+        return CALL_SOLANA.getResourceAddress(sha256(abi.encodePacked(
+            CALL_SOLANA.getNeonAddress(user),
+            LibSPLTokenProgram.TOKEN_PROGRAM_ID,
+            _tokenMint,
+            nonce,
+            LibSPLTokenProgram.ASSOCIATED_TOKEN_PROGRAM_ID
+        )));
+    }
+
     function testCreateAccountWithSeed(
         bytes32 programId,
         bytes memory seed,

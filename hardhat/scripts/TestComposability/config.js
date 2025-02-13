@@ -15,7 +15,7 @@ module.exports = {
         neonmainnet: "",
     },
     testComposability: {
-        curvestand: "0xD6D476f7B0473beF52eC765f2ef565983Dae9C59",
+        curvestand: "0xD135f9E9cA4722fFAE8384EaAfdB48C8CA88a2CD",
         neondevnet: "",
         neonmainnet: "",
     }

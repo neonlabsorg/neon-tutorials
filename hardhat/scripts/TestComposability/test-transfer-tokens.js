@@ -30,23 +30,22 @@ async function main() {
 
     const testComposability = await deployTestComposabilityContract()
 
-    const senderATAInBytes = await testComposability.ata() // Sender ata should be the last created ATA registered in TestComposability contract
-    console.log('Sender ATA: ' + ethers.encodeBase58(senderATAInBytes))
+    const neonEVMUserATAInBytes = await testComposability.ata() // NeonEVM user ata should be the last created ATA registered in TestComposability contract
+    console.log('NeonEVM user ATA: ' + ethers.encodeBase58(neonEVMUserATAInBytes))
 
-    // =================================== Create and initialize new ATA for recipient ====================================
+    // =================================== Create and initialize new ATA for Solana recipient ====================================
 
-    const recipient = (await ethers.getSigners())[1]
-    console.log("\nRecipient address: " + recipient.address)
+    const solanaRecipientPublicKey = (await web3.Keypair.generate()).publicKey
+    console.log("\nSolana recipient account: " + solanaRecipientPublicKey.toBase58())
 
     const tokenMintInBytes =  await testComposability.tokenMint()
-    const recipientPublicKeyInBytes = await testComposability.getNeonAddress(recipient.address)
 
     console.log('\nCalling testComposability.testCreateInitializeATA: ')
 
-    let tx = await testComposability.testCreateInitializeATA(
+    let tx = await testComposability.connect(deployer).testCreateInitializeATA(
         tokenMintInBytes,
-        recipientPublicKeyInBytes, // Pass recipient public key as owner so that the recipient controls the ATA through TestComposability contract
-        Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex'), // Leave tokenOwner field empty so that TestComposability contract owns the ATA
+        solanaRecipientPublicKey.toBuffer(), // Pass Solana recipient public key as owner
+        solanaRecipientPublicKey.toBuffer(), // Pass Solana recipient public key as tokenOwner so that it owns the ATA
         255 // nonce
     )
 
@@ -64,14 +63,14 @@ async function main() {
 
     console.log("\n")
 
-    const recipientATAInBytes = await testComposability.ata()
-    console.log('Created recipient ATA: ' + ethers.encodeBase58(recipientATAInBytes))
+    const solanaRecipientATAInBytes = await testComposability.ata()
+    console.log('Created Solana recipient ATA: ' + ethers.encodeBase58(solanaRecipientATAInBytes))
     let info = await solanaConnection.getTokenAccountBalance(
-        new web3.PublicKey(ethers.encodeBase58(recipientATAInBytes))
+        new web3.PublicKey(ethers.encodeBase58(solanaRecipientATAInBytes))
     );
-    console.log('Initial recipient ATA balance: ' + info.value.uiAmount)
+    console.log('Initial Solana recipient ATA balance: ' + info.value.uiAmount)
 
-    // =================================== Transfer SPL token amount to recipient ATA ====================================
+    // =================================== Transfer SPL token amount from deployer ATA to NeonEVM user ATA ====================================
 
     const tokenMint = await testComposability.tokenMint()
     const senderATANonce = 255 // This must be the same nonce that was used to create the sender's ATA through
@@ -79,10 +78,41 @@ async function main() {
 
     console.log('\nCalling testComposability.testTransferTokens: ')
 
-    tx = await testComposability.testTransferTokens(
+    tx = await testComposability.connect(deployer).testTransferTokens(
         tokenMint,
         senderATANonce,
-        recipientATAInBytes,
+        neonEVMUserATAInBytes,
+        100 * 10 ** 9 // amount (transfer 10 tokens)
+    )
+
+    console.log('\nNeonEVM transaction hash: ' + tx.hash)
+    await tx.wait(1) // Wait for 1 confirmation
+    txReceipt = await ethers.provider.getTransactionReceipt(tx.hash)
+    console.log(txReceipt.status, 'txReceipt.status')
+
+    solanaTransactions = (await (await getSolanaTransactions(tx.hash)).json()).result
+
+    console.log('\nSolana transactions signatures:')
+    for await (let txId of solanaTransactions) {
+        console.log(txId)
+    }
+    console.log("\n")
+
+    info = await solanaConnection.getTokenAccountBalance(new web3.PublicKey(ethers.encodeBase58(neonEVMUserATAInBytes)));
+    console.log('New NeonEVM user ATA balance: ' + info.value.uiAmount)
+
+    // =================================== Transfer SPL token amount from NeonEVM user ATA to Solana user ATA====================================
+
+    const neonEVMUserATANonce = 255 // This must be the same nonce that was used to create the NeonEVM user's ATA through
+    // the TestComposability contract
+    const neonEVMUser = (await ethers.getSigners())[1]
+
+    console.log('\nCalling testComposability.testTransferTokens: ')
+
+    tx = await testComposability.connect(neonEVMUser).testTransferTokens(
+        tokenMint,
+        neonEVMUserATANonce,
+        solanaRecipientATAInBytes,
         10 * 10 ** 9 // amount (transfer 10 tokens)
     )
 
@@ -99,8 +129,8 @@ async function main() {
     }
     console.log("\n")
 
-    info = await solanaConnection.getTokenAccountBalance(new web3.PublicKey(ethers.encodeBase58(recipientATAInBytes)));
-    console.log('New recipient ATA balance: ' + info.value.uiAmount)
+    info = await solanaConnection.getTokenAccountBalance(new web3.PublicKey(ethers.encodeBase58(solanaRecipientATAInBytes)));
+    console.log('New Solana user ATA balance: ' + info.value.uiAmount)
 }
 
 main()

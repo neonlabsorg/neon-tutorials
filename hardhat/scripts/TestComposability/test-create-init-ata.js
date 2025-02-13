@@ -29,13 +29,13 @@ async function main() {
 
     const testComposability = await deployTestComposabilityContract()
 
-    // =================================== Create and initialize new SPL associated token account ====================================
+    // =================================== Create and initialize new ATA for deployer ====================================
 
     const tokenMintInBytes =  await testComposability.tokenMint()
 
     console.log('\nCalling testComposability.testCreateInitializeATA: ')
 
-    let tx = await testComposability.testCreateInitializeATA(
+    let tx = await testComposability.connect(deployer).testCreateInitializeATA(
         tokenMintInBytes,
         Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex'), // Leave owner field empty so that msg.sender controls the ATA through TestComposability contract
         Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex'), // Leave tokenOwner field empty so that TestComposability contract owns the ATA
@@ -56,10 +56,43 @@ async function main() {
 
     console.log("\n")
 
-    const ata = await testComposability.ata()
-    console.log(ethers.encodeBase58(ata), 'Created ATA')
-    const info = await solanaConnection.getTokenAccountBalance(new web3.PublicKey(ethers.encodeBase58(ata)));
-    console.log(info, 'Created ATA info')
+    let ata = await testComposability.ata()
+    console.log(ethers.encodeBase58(ata), 'Created deployer ATA')
+    let info = await solanaConnection.getTokenAccountBalance(new web3.PublicKey(ethers.encodeBase58(ata)));
+    console.log(info, 'Created deployer ATA info')
+
+    // =================================== Create and initialize new ATA for third party NeonEVM user ====================================
+
+    const neonEVMUser = (await ethers.getSigners())[1]
+    const neonEVMUserPublicKeyInBytes = await testComposability.getNeonAddress(neonEVMUser.address)
+
+    console.log('\nCalling testComposability.testCreateInitializeATA: ')
+
+    tx = await testComposability.connect(deployer).testCreateInitializeATA(
+        tokenMintInBytes,
+        neonEVMUserPublicKeyInBytes, // Pass NeonEVM user public key so that neonEVMUser controls the ATA through TestComposability contract
+        Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex'), // Leave tokenOwner field empty so that TestComposability contract owns the ATA
+        255 // nonce
+    )
+
+    console.log('\nNeonEVM transaction hash: ' + tx.hash)
+    await tx.wait(1) // Wait for 1 confirmation
+    txReceipt = await ethers.provider.getTransactionReceipt(tx.hash)
+    console.log(txReceipt.status, 'txReceipt.status')
+
+    solanaTransactions = (await (await getSolanaTransactions(tx.hash)).json()).result
+
+    console.log('\nSolana transactions signatures:')
+    for await (let txId of solanaTransactions) {
+        console.log(txId)
+    }
+
+    console.log("\n")
+
+    ata = await testComposability.ata()
+    console.log(ethers.encodeBase58(ata), 'Created NeonEVN user ATA')
+    info = await solanaConnection.getTokenAccountBalance(new web3.PublicKey(ethers.encodeBase58(ata)));
+    console.log(info, 'Created NeonEVN user ATA info')
 }
 
 main()

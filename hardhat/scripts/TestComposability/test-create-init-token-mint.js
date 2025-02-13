@@ -32,12 +32,12 @@ async function main() {
 
     // =================================== Create and initialize new SPL token mint ====================================
 
-    const seed = 'myTokenMintSeed00';
+    const seed = 'myTokenMintSeed03';
     const decimals = 9
 
     console.log('\nCalling testComposability.testCreateInitializeTokenMint: ')
 
-    let tx = await testComposability.testCreateInitializeTokenMint(
+    let tx = await testComposability.connect(deployer).testCreateInitializeTokenMint(
         Buffer.from(seed), // Seed to generate new SPL token mint account on-chain
         decimals, // Decimals value for the new SPL token to be created on Solana
     )
