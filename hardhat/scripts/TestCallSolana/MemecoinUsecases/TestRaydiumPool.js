@@ -192,7 +192,7 @@ async function main() {
 
     startTime: new BN(0), // Unit in seconds
     ownerInfo: {
-      useSOLBalance: false,
+      useSOLBalance: true,
     },
     associatedOnly: false,
     txVersion,
@@ -206,24 +206,23 @@ async function main() {
   });
   console.log(addInstructions, "createPoolOnRaydium");
   console.log(addInstructions.builder.instructions[0], "createPoolOnRaydium0");
-  //console.log(addInstructions.builder.instructions[1], "createPoolOnRaydium1");
-  //console.log(addInstructions.builder.instructions[2], "createPoolOnRaydium2");
+  console.log(addInstructions.builder.instructions[1], "createPoolOnRaydium1");
+  console.log(addInstructions.builder.instructions[2], "createPoolOnRaydium2");
 
   // /BUILD RAYDIUM CREATE POOL INSTRUCTION
 
   console.log("\n ***OWNER*** Broadcast Raydium create WSOL/TNEON3 pool ... ");
   solanaTx = new web3.Transaction();
   solanaTx.add(addInstructions.builder.instructions[0]);
-  //solanaTx.add(addInstructions.builder.instructions[1]);
-  //solanaTx.add(addInstructions.builder.instructions[2]);
+  solanaTx.add(addInstructions.builder.instructions[1]);
+  solanaTx.add(addInstructions.builder.instructions[2]);
 
   console.log("Instructions array", solanaTx.instructions);
 
   console.log("Processing batchExecute method with all instructions ...");
-  /*[tx, receipt] = await config.utils.batchExecute(
+  [tx, receipt] = await config.utils.batchExecute(
     solanaTx.instructions,
-    //[2000000000, 0, 3000000000],
-    [6000000000],
+    [2000000000, 0, 3000000000],
     TestCallSolana,
     undefined,
     owner
@@ -231,9 +230,9 @@ async function main() {
   console.log(tx, "tx");
   for (let i = 0, len = receipt.logs.length; i < len; ++i) {
     console.log(receipt.logs[i].args, " receipt args instruction #", i);
-  }*/
+  }
 
-  console.log(
+  /*console.log(
     "📌 Instruction Data:",
     solanaTx.instructions[0].data.toString("hex")
   );
@@ -248,7 +247,7 @@ async function main() {
     owner
   );
   console.log(tx, "tx");
-  console.log(receipt.logs[0].args, "receipt args");
+  console.log(receipt.logs[0].args, "receipt args");*/
 }
 
 // We recommend this pattern to be able to use async/await everywhere
