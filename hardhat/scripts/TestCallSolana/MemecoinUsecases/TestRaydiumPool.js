@@ -130,10 +130,11 @@ async function main() {
   console.log(ataContractTNEON3, "ataContractTNEON3");
 
   const marketId = new web3.PublicKey(
-    "FKHpdEtitWwGNXo9hYa3CTcVo1LLWDyexC7eM4Sferxz"
+    "CatTLfgPb8y6y1vLQMJsSPrPfGUSbtLQomdxGf9mxYZo"
   );
 
-  //const txVersion = TxVersion.V0;
+  console.log("Openbook Devnet program id:", DEVNET_PROGRAM_ID.OPENBOOK_MARKET);
+  console.log("Raydium Devnet program id", DEVNET_PROGRAM_ID.AmmV4);
 
   // If you are sure about your market info, you don't need to get market info from RPC
   const marketBufferInfo = await connection.getAccountInfo(
@@ -176,7 +177,7 @@ async function main() {
     programId: DEVNET_PROGRAM_ID.AmmV4, // devnet
     marketInfo: {
       marketId,
-      programId: OPEN_BOOK_PROGRAM,
+      programId: DEVNET_PROGRAM_ID.OPENBOOK_MARKET,
     },
     baseMintInfo: {
       mint: baseMint,
@@ -191,7 +192,7 @@ async function main() {
 
     startTime: new BN(0), // Unit in seconds
     ownerInfo: {
-      useSOLBalance: true,
+      useSOLBalance: false,
     },
     associatedOnly: false,
     txVersion,
@@ -203,25 +204,26 @@ async function main() {
       microLamports: 46591500,
     },*/
   });
-  console.log(addInstructions.builder, "createPoolOnRaydium");
+  console.log(addInstructions, "createPoolOnRaydium");
   console.log(addInstructions.builder.instructions[0], "createPoolOnRaydium0");
-  console.log(addInstructions.builder.instructions[1], "createPoolOnRaydium1");
-  console.log(addInstructions.builder.instructions[2], "createPoolOnRaydium2");
+  //console.log(addInstructions.builder.instructions[1], "createPoolOnRaydium1");
+  //console.log(addInstructions.builder.instructions[2], "createPoolOnRaydium2");
 
   // /BUILD RAYDIUM CREATE POOL INSTRUCTION
 
   console.log("\n ***OWNER*** Broadcast Raydium create WSOL/TNEON3 pool ... ");
   solanaTx = new web3.Transaction();
   solanaTx.add(addInstructions.builder.instructions[0]);
-  solanaTx.add(addInstructions.builder.instructions[1]);
-  solanaTx.add(addInstructions.builder.instructions[2]);
+  //solanaTx.add(addInstructions.builder.instructions[1]);
+  //solanaTx.add(addInstructions.builder.instructions[2]);
 
   console.log("Instructions array", solanaTx.instructions);
 
   console.log("Processing batchExecute method with all instructions ...");
-  [tx, receipt] = await config.utils.batchExecute(
+  /*[tx, receipt] = await config.utils.batchExecute(
     solanaTx.instructions,
-    [minBalance, 0, 0],
+    //[2000000000, 0, 3000000000],
+    [6000000000],
     TestCallSolana,
     undefined,
     owner
@@ -229,7 +231,24 @@ async function main() {
   console.log(tx, "tx");
   for (let i = 0, len = receipt.logs.length; i < len; ++i) {
     console.log(receipt.logs[i].args, " receipt args instruction #", i);
-  }
+  }*/
+
+  console.log(
+    "📌 Instruction Data:",
+    solanaTx.instructions[0].data.toString("hex")
+  );
+  console.log("📌 Required Accounts:", solanaTx.instructions[0].keys);
+  console.log("📌 Program ID:", solanaTx.instructions[0].programId.toBase58());
+
+  [tx, receipt] = await config.utils.execute(
+    solanaTx.instructions[0],
+    new BN("30000000000"),
+    TestCallSolana,
+    undefined,
+    owner
+  );
+  console.log(tx, "tx");
+  console.log(receipt.logs[0].args, "receipt args");
 }
 
 // We recommend this pattern to be able to use async/await everywhere

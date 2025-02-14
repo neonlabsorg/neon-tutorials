@@ -35,6 +35,7 @@ const config = {
         USDT: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
         WBTC: "3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh",
         RAY: "4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R",
+        TNEON: "AX4fyYtJ3siMimcDercvZPQnus9SCG4xWicHJck9URhd", // MAINNET
         TNEON2: "HEantcHdnmLdjo7noFC5Qqhz3NCG8m6ivvk5vp7QZX8Q", // DEVNET
         TNEON3: "EJ6Wmsg55NMPfv7X7dQGiRzKdP9BULH8P9sYrfNwCFdL", // DEVNET
         NEON_PROGRAM: "NeonVMyRX5GbCrsAHnUwx1nYYoJAtskU1bWUo6JGNyG",
@@ -60,6 +61,7 @@ const config = {
         USDC: "0xea6b04272f9f62f997f666f07d3a974134f7ffb9",
         USDT: "0x5f0155d08eF4aaE2B500AefB64A3419dA8bB611a",
         WBTC: "0x16a3Fe59080D6944A42B441E44450432C1445372",
+        TNEON: "0x4a146030d717a06e4ee7771b7c21cf836649d45f", // MAINNET
         TNEON2: "0x2e6bff0797e262182d048e517ff7a6aef9131842", // DEVNET
         TNEON3: "0xc4779cd9883cb15e71cc5fd4f5250d4af6846e88", // DEVNET
       },
@@ -429,8 +431,6 @@ const config = {
         setSalts = true;
         salts = [];
       }
-
-      console.log("**Instructions:", instructions);
 
       let instructionsDataArr = [];
       for (let i = 0, len = instructions.length; i < len; ++i) {
