@@ -3,11 +3,11 @@ const {
     Liquidity,
     Token,
     TOKEN_PROGRAM_ID,
-    TokenAmount, 
-    Fraction, 
-    Currency, 
-    CurrencyAmount, 
-    Price, 
+    TokenAmount,
+    Fraction,
+    Currency,
+    CurrencyAmount,
+    Price,
     Percent,
     LIQUIDITY_STATE_LAYOUT_V4,
     MARKET_STATE_LAYOUT_V3,
@@ -79,7 +79,7 @@ const config = {
             return '0x' + ethers.zeroPadBytes(ethers.toBeHex(instruction.keys.length), 8).substring(2) + encodeKeys;
         },
         prepareInstructionData: function(instruction) {
-            const packedInstructionData = ethers.solidityPacked( 
+            const packedInstructionData = ethers.solidityPacked(
                 ["bytes"],
                 [instruction.data]
             ).substring(2);
@@ -90,7 +90,7 @@ const config = {
         prepareInstruction: function(instruction) {
             return config.utils.publicKeyToBytes32(instruction.programId.toBase58()) + config.utils.prepareInstructionAccounts(instruction).substring(2) + config.utils.prepareInstructionData(instruction).substring(2);
         },
-        execute: async function(instruction, lamports, contractInstance, salt, msgSender) { 
+        execute: async function(instruction, lamports, contractInstance, salt, msgSender) {
             if (salt == undefined) {
                 salt = '0x0000000000000000000000000000000000000000000000000000000000000000';
             }
@@ -119,7 +119,7 @@ const config = {
                     salts.push('0x0000000000000000000000000000000000000000000000000000000000000000');
                 }
             }
-    
+
             const tx = await contractInstance.connect(msgSender).batchExecute(
                 lamports,
                 salts,
@@ -143,7 +143,7 @@ const config = {
                 Buffer.from(tokenEvmAddress.substring(2), 'hex'),
                 Buffer.from(neonAccountAddressBytes, 'hex')
             ];
-        
+
             return web3.PublicKey.findProgramAddressSync(seed, neonEvmProgram);
         },
         isValidHex: function(hex) {
@@ -161,8 +161,8 @@ const config = {
     },
     orcaHelper: {
         getParamsFromPools: function(
-            pools, 
-            PDAUtil, 
+            pools,
+            PDAUtil,
             programId,
             ataContractTokenA,
             ataContractTokenB,
@@ -207,14 +207,14 @@ const config = {
             let currencyInDecimals = poolInfo.baseDecimals
             let currencyOutMint = poolKeys.quoteMint
             let currencyOutDecimals = poolInfo.quoteDecimals
-        
+
             if (!swapInDirection) {
                 currencyInMint = poolKeys.quoteMint
                 currencyInDecimals = poolInfo.quoteDecimals
                 currencyOutMint = poolKeys.baseMint
                 currencyOutDecimals = poolInfo.baseDecimals
             }
-        
+
             const currencyIn = new Token(TOKEN_PROGRAM_ID, currencyInMint, currencyInDecimals)
             const currencyOut = new Token(TOKEN_PROGRAM_ID, currencyOutMint, currencyOutDecimals)
             const amountIn = new TokenAmount(currencyIn, rawAmountIn, false)
@@ -225,7 +225,7 @@ const config = {
                 currencyOut,
                 slippage: new Percent(slippage, 100)
             })
-        
+
             return [
                 amountIn,
                 amountOut,
@@ -242,14 +242,14 @@ const config = {
             let currencyInDecimals = poolInfo.baseDecimals
             let currencyOutMint = poolKeys.quoteMint
             let currencyOutDecimals = poolInfo.quoteDecimals
-        
+
             if (!swapInDirection) {
                 currencyInMint = poolKeys.quoteMint
                 currencyInDecimals = poolInfo.quoteDecimals
                 currencyOutMint = poolKeys.baseMint
                 currencyOutDecimals = poolInfo.baseDecimals
             }
-        
+
             const currencyIn = new Token(TOKEN_PROGRAM_ID, currencyInMint, currencyInDecimals)
             const currencyOut = new Token(TOKEN_PROGRAM_ID, currencyOutMint, currencyOutDecimals)
             const amountOut = new TokenAmount(currencyOut, rawAmountOut, false)
@@ -260,7 +260,7 @@ const config = {
                 currencyIn,
                 slippage: new Percent(slippage, 100)
             })
-        
+
             return [
                 amountIn,
                 amountOut,
@@ -272,17 +272,17 @@ const config = {
         },
         findPoolInfoForTokens: async function(liquidityFile, mintA, mintB) {
             const liquidityJson = JSON.parse(fs.readFileSync(__dirname + '/' + liquidityFile, 'utf8'));
-
-            /* const liquidityJsonResp = await fetch(liquidityFile);
+/*
+            const liquidityJsonResp = await fetch(liquidityFile);
             if (!liquidityJsonResp.ok) return
-            const liquidityJson = (await liquidityJsonResp.json()) */
-
+            const liquidityJson = (await liquidityJsonResp.json())
+*/
             const allPoolKeysJson = [...(liquidityJson?.official ?? []), ...(liquidityJson?.unOfficial ?? [])]
-        
+
             const poolData = allPoolKeysJson.find(
                 (i) => (i.baseMint === mintA && i.quoteMint === mintB) || (i.baseMint === mintB && i.quoteMint === mintA)
             )
-          
+
             if (!poolData) {
                 return null;
             } else {
@@ -303,7 +303,7 @@ const config = {
             if (publicKey instanceof web3.PublicKey) {
                 return publicKey
             }
-          
+
             if (typeof publicKey === 'string') {
               try {
                 const key = new web3.PublicKey(publicKey)
@@ -327,17 +327,17 @@ const config = {
             const account = await connection.getAccountInfo(new web3.PublicKey(id));
             if (account === null) throw Error(' get id info error ')
             const info = LIQUIDITY_STATE_LAYOUT_V4.decode(account.data);
-          
+
             const marketId = info.marketId
             const marketAccount = await connection.getAccountInfo(marketId);
             if (marketAccount === null) throw Error(' get market info error')
             const marketInfo = MARKET_STATE_LAYOUT_V3.decode(marketAccount.data)
-          
+
             const lpMint = info.lpMint
             const lpMintAccount = await connection.getAccountInfo(lpMint);
             if (lpMintAccount === null) throw Error(' get lp mint info error')
             const lpMintInfo = SPL_MINT_LAYOUT.decode(lpMintAccount.data)
-          
+
             return {
                 id,
                 baseMint: info.baseMint.toString(),
@@ -371,7 +371,7 @@ const config = {
             const walletTokenAccount = await connection.getTokenAccountsByOwner(wallet, {
                 programId: TOKEN_PROGRAM_ID,
             });
-            
+
             return walletTokenAccount.value.map((i) => ({
                 pubkey: i.pubkey,
                 programId: i.account.owner,

@@ -60,7 +60,7 @@ async function main() {
 
     const seed = 'seed' + Date.now().toString(); // random seed on each script call
     const createWithSeed = await web3.PublicKey.createWithSeed(new web3.PublicKey(contractPublicKey), seed, new web3.PublicKey(TOKEN_PROGRAM_ID));
-    console.log(createWithSeed, 'createWithSeed');
+    console.log(createWithSeed, 'Token mint addess');
 
     const minBalance = await connection.getMinimumBalanceForRentExemption(MINT_SIZE);
 
@@ -81,7 +81,7 @@ async function main() {
     // ============================= InitializeMint2 INSTRUCTION ====================================
     solanaTx.add(
         createInitializeMint2Instruction(
-            createWithSeed, 
+            createWithSeed,
             9, // decimals
             new web3.PublicKey(contractPublicKey), // mintAuthority
             new web3.PublicKey(contractPublicKey), // freezeAuthority
@@ -104,9 +104,9 @@ async function main() {
             {
                 createMetadataAccountArgsV3: {
                     data: {
-                        name: "Doge coin on Neon EVM",
-                        symbol: "DOGE",
-                        uri: 'https://ipfs.io/ipfs/QmW2JdmwWsTVLw1Gx4ympCn1VHJiuojfNLS5ZNLEPcBd5x/doge.json',
+                        name: "Test Raydium Token",
+                        symbol: "TRT",
+                        uri: '',
                         sellerFeeBasisPoints: 0,
                         collection: null,
                         creators: null,
@@ -121,8 +121,8 @@ async function main() {
 
     console.log('Processing batchExecute method with all instructions ...');
     [tx, receipt] = await config.utils.batchExecute(
-        solanaTx.instructions, 
-        [minBalance, 0, 100000000], 
+        solanaTx.instructions,
+        [minBalance, 0, 100000000],
         TestCallSolana,
         undefined,
         user1
