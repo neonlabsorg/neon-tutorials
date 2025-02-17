@@ -1,9 +1,4 @@
-const {
-    Raydium,
-    TxVersion,
-    parseTokenAccountResp,
-} = require("@raydium-io/raydium-sdk-v2");
-const { Connection, Keypair, clusterApiUrl } = require("@solana/web3.js");
+const web3 = require("@solana/web3.js");
 const {
     TOKEN_PROGRAM_ID,
     ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -13,15 +8,27 @@ const {
     getAssociatedTokenAddressSync,
     createAssociatedTokenAccountInstruction
 } = require("@solana/spl-token");
+const { DEVNET_PROGRAM_ID,
+    MARKET_STATE_LAYOUT_V3,
+    LIQUIDITY_STATE_LAYOUT_V4,
+    Liquidity,
+    Token,
+    TokenAmount,
+    Percent
+} = require("@raydium-io/raydium-sdk");
+const {
+    Raydium,
+    TxVersion,
+    parseTokenAccountResp,
+} = require("@raydium-io/raydium-sdk-v2");
 const bs58 = require("bs58");
-const {DEVNET_PROGRAM_ID, MARKET_STATE_LAYOUT_V3, LIQUIDITY_STATE_LAYOUT_V4} = require("@raydium-io/raydium-sdk");
-const web3 = require("@solana/web3.js");
+
 require("dotenv").config();
 
-const owner = Keypair.fromSecretKey(
+const owner = web3.Keypair.fromSecretKey(
     bs58.default.decode(process.env.PRIVATE_KEY_SOLANA)
 );
-const connection = new Connection(clusterApiUrl("devnet")); // For devnet
+const connection = new web3.Connection(web3.clusterApiUrl("devnet")); // For devnet
 const txVersion = TxVersion.LEGACY; // TxVersion.V0 or TxVersion.LEGACY
 
 let raydium;
@@ -147,11 +154,11 @@ const getPoolKeys = async (baseMint, quoteMint ) => {
     if(openBookAccounts.length && marketAccounts.length) {
         const base = {
             programId: DEVNET_PROGRAM_ID.AmmV4, // Raydium AMM V4 program on Solana devnet
-            id: marketAccounts[0].id,
+            id: new web3.PublicKey(marketAccounts[0].id),
             mintA: baseMint,
             mintB: quoteMint,
             openTime: marketAccounts[0].poolOpenTime,
-            vault: { A: openBookAccounts[0].baseVault, B: openBookAccounts[0].quoteVault }
+            vault: { A: marketAccounts[0].baseVault, B: marketAccounts[0].quoteVault }
             // lookupTableAccount?: string
         }
 
@@ -167,13 +174,22 @@ const getPoolKeys = async (baseMint, quoteMint ) => {
         }
 
         const amm = {
-            authority: marketAccounts[0].owner,
+            authority: new web3.PublicKey('DbQqP6ehDYmeYjcBaMRuA8tAJY1EjDUz9DpwSLjaQqfC'), // AMM authority returned when creating pool (how to get it?)
             openOrders: marketAccounts[0].openOrders,
             targetOrders: marketAccounts[0].targetOrders,
             mintLp: marketAccounts[0].lpMint
         }
 
-        return {...base, ...amm, ...market}
+        // Adding extra fields required for getAmountOut, getAmountIn logic
+        const extra = {
+            baseVault: marketAccounts[0].baseVault,
+            quoteVault: marketAccounts[0].quoteVault,
+            baseMint: baseMint,
+            quoteMint: quoteMint,
+            lpMint: marketAccounts[0].lpMint
+        }
+
+        return { version: 4, ...base, ...amm, ...market, ...extra } // V4 Pool Keys
     } else {
         console.warn("No OpenBook or market account found")
     }
@@ -245,6 +261,88 @@ const getSwapATAs = async (swapConfig) => {
     return({ tokenIn_ATA, tokenOut_ATA })
 }
 
+const getAmountOut = async (poolKeys, rawAmountIn, swapInDirection, slippage) => {
+
+    const poolInfo = await Liquidity.fetchInfo({ connection, poolKeys });
+
+    console.log(poolKeys, 'poolInfo')
+
+    let currencyInMint = poolKeys.baseMint
+    let currencyInDecimals = poolInfo.baseDecimals
+    let currencyOutMint = poolKeys.quoteMint
+    let currencyOutDecimals = poolInfo.quoteDecimals
+
+    if (!swapInDirection) {
+        currencyInMint = poolKeys.quoteMint
+        currencyInDecimals = poolInfo.quoteDecimals
+        currencyOutMint = poolKeys.baseMint
+        currencyOutDecimals = poolInfo.baseDecimals
+    }
+
+    const currencyIn = new Token(TOKEN_PROGRAM_ID, currencyInMint, currencyInDecimals)
+    const currencyOut = new Token(TOKEN_PROGRAM_ID, currencyOutMint, currencyOutDecimals)
+    const amountIn = new TokenAmount(currencyIn, rawAmountIn, false)
+    const { amountOut,
+            minAmountOut,
+            currentPrice,
+            executionPrice,
+            priceImpact,
+            fee
+        } = Liquidity.computeAmountOut({
+            poolKeys,
+            poolInfo,
+            amountIn,
+            currencyOut,
+            slippage: new Percent(slippage, 100)
+        })
+
+    return {
+        amountIn,
+        amountOut,
+        minAmountOut,
+        currentPrice,
+        executionPrice,
+        priceImpact,
+        fee
+    }
+}
+
+const getAmountIn = async (poolKeys, rawAmountOut, swapInDirection, slippage) => {
+    const poolInfo = await Liquidity.fetchInfo({ connection, poolKeys });
+
+    let currencyInMint = poolKeys.baseMint
+    let currencyInDecimals = poolInfo.baseDecimals
+    let currencyOutMint = poolKeys.quoteMint
+    let currencyOutDecimals = poolInfo.quoteDecimals
+
+    if (!swapInDirection) {
+        currencyInMint = poolKeys.quoteMint
+        currencyInDecimals = poolInfo.quoteDecimals
+        currencyOutMint = poolKeys.baseMint
+        currencyOutDecimals = poolInfo.baseDecimals
+    }
+
+    const currencyIn = new Token(TOKEN_PROGRAM_ID, currencyInMint, currencyInDecimals)
+    const currencyOut = new Token(TOKEN_PROGRAM_ID, currencyOutMint, currencyOutDecimals)
+    const amountOut = new TokenAmount(currencyOut, rawAmountOut, false)
+    const { amountIn, maxAmountIn, currentPrice, executionPrice, priceImpact } = Liquidity.computeAmountIn({
+        poolKeys,
+        poolInfo,
+        amountOut,
+        currencyIn,
+        slippage: new Percent(slippage, 100)
+    })
+
+    return [
+        amountIn,
+        amountOut,
+        maxAmountIn,
+        currentPrice,
+        executionPrice,
+        priceImpact
+    ];
+}
+
 module.exports = {
     owner,
     connection,
@@ -255,5 +353,7 @@ module.exports = {
     fetchMarketAccounts,
     getPoolKeys,
     createInitializeATA,
-    getSwapATAs
+    getSwapATAs,
+    getAmountIn,
+    getAmountOut
 };
