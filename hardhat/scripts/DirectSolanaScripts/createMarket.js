@@ -13,21 +13,30 @@ const createMarket = async () => {
   // Check mint info here: https://api-v3.raydium.io/mint/list
   // or get mint info by API: await raydium.token.getTokenInfo('mint address')
 
+  let info = await raydium.token.getTokenInfo(
+    "3MRAFn6aLDhnvfFbhnjn3sBjBfLTYQHoWhGMQyb7YW8d"
+  );
+  console.log(info, "TNEON5 mint info");
+
+  info = await raydium.token.getTokenInfo(WSOLMint.toBase58());
+  console.log(info, "WSOL mint info");
+
   console.log("Devnet program ID:", DEVNET_PROGRAM_ID.OPENBOOK_MARKET);
-  console.log("Mainnet program ID:", OPEN_BOOK_PROGRAM);
+
+  console.log(WSOLMint, "WSOLMint");
 
   const { execute, extInfo, transactions } = await raydium.marketV2.create({
     baseInfo: {
-      // Create market doesn't support token 2022
-      mint: new PublicKey("BnZKsX9Y2NfwCXFqpAT3Z6TSowdZBo1zAaxa29aSHjKQ"),
-      decimal: 6,
+      // TNEON5 token
+      mint: new PublicKey("3MRAFn6aLDhnvfFbhnjn3sBjBfLTYQHoWhGMQyb7YW8d"),
+      decimals: 9,
     },
     quoteInfo: {
       // Create market doesn't support token 2022
       mint: WSOLMint,
       decimals: 9,
     },
-    lotSize: new BN(10 ** 6),
+    lotSize: 1000000,
     tickSize: 0.1,
     //dexProgramId: OPEN_BOOK_PROGRAM,
     dexProgramId: DEVNET_PROGRAM_ID.OPENBOOK_MARKET, // Use for devnet
