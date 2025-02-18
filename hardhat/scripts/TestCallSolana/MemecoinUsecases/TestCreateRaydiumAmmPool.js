@@ -3,6 +3,7 @@ const web3 = require("@solana/web3.js");
 const {
   getAssociatedTokenAddress,
   getAccount,
+  createInitializeAccountInstruction,
   TOKEN_PROGRAM_ID,
   MINT_SIZE,
 } = require("@solana/spl-token");
@@ -76,6 +77,14 @@ async function main() {
   const ownerPublicKeyInBytes = await TestCallSolana.getNeonAddress(owner);
   const ownerPublicKey = ethers.encodeBase58(ownerPublicKeyInBytes);
   console.log(ownerPublicKey, "ownerPublicKey");
+
+  const seed = "seed" + Date.now().toString(); // random seed on each script call
+  const createWithSeed = await web3.PublicKey.createWithSeed(
+    new web3.PublicKey(contractPublicKey),
+    seed,
+    new web3.PublicKey(TOKEN_PROGRAM_ID)
+  );
+  console.log(createWithSeed, "createWithSeed");
 
   const minBalance = await connection.getMinimumBalanceForRentExemption(
     MINT_SIZE
@@ -172,7 +181,7 @@ async function main() {
     );
   }
 
-  const addInstructions = await raydium.liquidity.createPoolV4({
+  const { builder } = await raydium.liquidity.createPoolV4({
     //programId: AMM_V4,
     programId: DEVNET_PROGRAM_ID.AmmV4, // devnet
     marketInfo: {
@@ -194,6 +203,7 @@ async function main() {
     ownerInfo: {
       useSOLBalance: true,
     },
+    feePayer: new web3.PublicKey(payer),
     associatedOnly: false,
     txVersion,
     //feeDestinationId: FEE_DESTINATION_ID,
@@ -204,25 +214,38 @@ async function main() {
       microLamports: 46591500,
     },*/
   });
-  console.log(addInstructions, "createPoolOnRaydium");
-  console.log(addInstructions.builder.instructions[0], "createPoolOnRaydium0");
-  console.log(addInstructions.builder.instructions[1], "createPoolOnRaydium1");
-  console.log(addInstructions.builder.instructions[2], "createPoolOnRaydium2");
+
+  console.log("Transaction builder array:", builder);
 
   // /BUILD RAYDIUM CREATE POOL INSTRUCTION
 
   console.log("\n ***OWNER*** Broadcast Raydium create WSOL/TNEON3 pool ... ");
   solanaTx = new web3.Transaction();
-  solanaTx.add(addInstructions.builder.instructions[0]);
-  solanaTx.add(addInstructions.builder.instructions[1]);
-  solanaTx.add(addInstructions.builder.instructions[2]);
 
-  console.log("Instructions array", solanaTx.instructions);
+  builder.instructions[0].keys.push({
+    pubkey: new web3.PublicKey(payer),
+    isSigner: true,
+    isWritable: true, // Mark as writable only if needed
+  });
+
+  builder.instructions[2].keys.push({
+    pubkey: new web3.PublicKey(payer),
+    isSigner: true,
+    isWritable: true, // Mark as writable only if needed
+  });
+
+  console.log(builder.instructions[0], "createPoolOnRaydium0");
+  console.log(builder.instructions[1], "createPoolOnRaydium1");
+  console.log(builder.instructions[2], "createPoolOnRaydium2");
+
+  solanaTx.add(builder.instructions[0]);
+  solanaTx.add(builder.instructions[1]);
+  solanaTx.add(builder.instructions[2]);
 
   console.log("Processing batchExecute method with all instructions ...");
   [tx, receipt] = await config.utils.batchExecute(
     solanaTx.instructions,
-    [2000000000, 0, 3000000000],
+    [10000000000, 0, 100000000],
     TestCallSolana,
     undefined,
     owner
@@ -232,22 +255,30 @@ async function main() {
     console.log(receipt.logs[i].args, " receipt args instruction #", i);
   }
 
-  /*console.log(
-    "📌 Instruction Data:",
-    solanaTx.instructions[0].data.toString("hex")
-  );
-  console.log("📌 Required Accounts:", solanaTx.instructions[0].keys);
-  console.log("📌 Program ID:", solanaTx.instructions[0].programId.toBase58());
+  /*console.log("\nProcessing each instruction separately...");
+  for (let i = 0; i < solanaTx.instructions.length; i++) {
+    console.log("📌 Executing Instruction", i);
+    console.log(
+      "📌 Program ID:",
+      solanaTx.instructions[i].programId.toBase58()
+    );
+    console.log("📌 Keys:", solanaTx.instructions[i].keys);
+    console.log("📌 Data:", solanaTx.instructions[i].data.toString("hex"));
 
-  [tx, receipt] = await config.utils.execute(
-    solanaTx.instructions[0],
-    new BN("30000000000"),
-    TestCallSolana,
-    undefined,
-    owner
-  );
-  console.log(tx, "tx");
-  console.log(receipt.logs[0].args, "receipt args");*/
+    try {
+      let [tx, receipt] = await config.utils.execute(
+        solanaTx.instructions[i],
+        1000000000,
+        TestCallSolana,
+        undefined,
+        owner
+      );
+      console.log("✅ Instruction", i, "executed successfully.");
+    } catch (error) {
+      console.error("❌ Instruction", i, "failed:", error);
+      break; // Stop execution if an instruction fails
+    }
+  }*/
 }
 
 // We recommend this pattern to be able to use async/await everywhere

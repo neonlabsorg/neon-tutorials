@@ -6,21 +6,27 @@ const {
   DEVNET_PROGRAM_ID,
 } = require("@raydium-io/raydium-sdk-v2");
 const { initSdk, txVersion } = require("./config");
-const { PublicKey } = require("@solana/web3.js");
+const web3 = require("@solana/web3.js");
 const { TOKEN_PROGRAM_ID } = require("@solana/spl-token");
 const BN = require("bn.js");
 
 const createAmmPool = async () => {
   try {
     const raydium = await initSdk();
-    const marketId = new PublicKey(
+    const marketId = new web3.PublicKey(
       //"BhTBX9GdK6MVpCCmd4s37Gxe5Vu7HnoBAzeWnim5svyi" // Mainnet
-      "CT8VhYVaZe6iAhJcmqQ24RChg4CxEBZgUJL5n3Wbpivq" // Devnet
+      "8XNyJraQbtUTgiXvNTGS9AA9SxmoCXBUSnqeyn3jroej" // Devnet
     );
+
+    console.log(
+      "Openbook Devnet program id:",
+      DEVNET_PROGRAM_ID.OPENBOOK_MARKET
+    );
+    console.log("Raydium Devnet program id", DEVNET_PROGRAM_ID.AmmV4);
 
     // If you are sure about your market info, you don't need to get market info from RPC
     const marketBufferInfo = await raydium.connection.getAccountInfo(
-      new PublicKey(marketId)
+      new web3.PublicKey(marketId)
     );
     console.log(marketBufferInfo);
     const { baseMint, quoteMint } = MARKET_STATE_LAYOUT_V3.decode(
@@ -55,48 +61,56 @@ const createAmmPool = async () => {
       );
     }
 
-    const { execute, extInfo } = await raydium.liquidity.createPoolV4({
-      //programId: AMM_V4,
-      programId: DEVNET_PROGRAM_ID.AmmV4, // devnet
-      marketInfo: {
-        marketId,
-        //programId: OPEN_BOOK_PROGRAM,
-        programId: DEVNET_PROGRAM_ID.OPENBOOK_MARKET, // devnet
-      },
-      baseMintInfo: {
-        mint: baseMint,
-        decimals: baseMintInfo.decimals, // If you know mint decimals, you can pass the number directly
-      },
-      quoteMintInfo: {
-        mint: quoteMint,
-        decimals: quoteMintInfo.decimals, // If you know mint decimals, you can pass the number directly
-      },
-      baseAmount: new BN(4000000),
-      quoteAmount: new BN(1000000000),
+    const { execute, extInfo, builder, transactions } =
+      await raydium.liquidity.createPoolV4({
+        //programId: AMM_V4,
+        programId: DEVNET_PROGRAM_ID.AmmV4, // devnet
+        marketInfo: {
+          marketId,
+          //programId: OPEN_BOOK_PROGRAM,
+          programId: DEVNET_PROGRAM_ID.OPENBOOK_MARKET, // devnet
+        },
+        baseMintInfo: {
+          mint: baseMint,
+          decimals: baseMintInfo.decimals, // If you know mint decimals, you can pass the number directly
+        },
+        quoteMintInfo: {
+          mint: quoteMint,
+          decimals: quoteMintInfo.decimals, // If you know mint decimals, you can pass the number directly
+        },
+        baseAmount: new BN(4000000),
+        quoteAmount: new BN(1000000000),
 
-      // sol devnet faucet: https://faucet.solana.com/
-      // baseAmount: new BN(4 * 10 ** 9), // If devnet pool with SOL/WSOL, use amount >= 4*10**9
-      // quoteAmount: new BN(4 * 10 ** 9), // If devnet pool with SOL/WSOL, use amount >= 4*10**9
+        // sol devnet faucet: https://faucet.solana.com/
+        // baseAmount: new BN(4 * 10 ** 9), // If devnet pool with SOL/WSOL, use amount >= 4*10**9
+        // quoteAmount: new BN(4 * 10 ** 9), // If devnet pool with SOL/WSOL, use amount >= 4*10**9
 
-      startTime: new BN(0), // Unit in seconds
-      ownerInfo: {
-        useSOLBalance: true,
-      },
-      associatedOnly: false,
-      txVersion,
-      //feeDestinationId: FEE_DESTINATION_ID,
-      feeDestinationId: DEVNET_PROGRAM_ID.FEE_DESTINATION_ID, // devnet
-      // Optional: Set up priority fee here
-      /*computeBudgetConfig: {
-          units: 600000,
-          microLamports: 46591500,
-        },*/
-    });
+        startTime: new BN(0), // Unit in seconds
+        ownerInfo: {
+          useSOLBalance: true,
+        },
+        associatedOnly: false,
+        txVersion,
+        //feeDestinationId: FEE_DESTINATION_ID,
+        feeDestinationId: DEVNET_PROGRAM_ID.FEE_DESTINATION_ID, // devnet
+        // Optional: Set up priority fee here
+        /*computeBudgetConfig: {
+        units: 600000,
+        microLamports: 46591500,
+      },*/
+      });
 
-    console.log(execute, extInfo);
+    console.log("📌 Transaction Instructions: ", transactions);
+
+    console.log(builder, "createRaydiumPool");
+    console.log(builder.instructions[0], "createPoolOnRaydium0");
+    console.log(builder.instructions[1], "createPoolOnRaydium1");
+    console.log(builder.instructions[2], "createPoolOnRaydium2");
+
+    //console.log(execute, extInfo);
 
     // Don't want to wait for confirmation? Set sendAndConfirm to false or omit it in execute
-    const { txId } = await execute({ sendAndConfirm: false });
+    /*const { txId } = await execute({ sendAndConfirm: false });
     console.log(
       "AMM pool created! txId:",
       txId,
@@ -108,7 +122,7 @@ const createAmmPool = async () => {
         }),
         {}
       )
-    );
+    );*/
   } catch (error) {
     console.error("Error creating pool:", error);
   } finally {

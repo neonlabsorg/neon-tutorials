@@ -19,7 +19,7 @@ const owner = Keypair.fromSecretKey(
     "processed"
   ); // Replace <YOUR_RPC_URL> with your RPC URL*/
 const connection = new Connection(clusterApiUrl("devnet")); // For devnet
-const txVersion = TxVersion.V0; // or TxVersion.LEGACY
+const txVersion = TxVersion.LEGACY; // or TxVersion.LEGACY || TxVersion.V0
 
 let raydium;
 const initSdk = async (params) => {
