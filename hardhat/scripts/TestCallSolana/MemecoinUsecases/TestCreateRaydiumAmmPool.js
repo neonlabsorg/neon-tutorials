@@ -78,14 +78,6 @@ async function main() {
   const ownerPublicKey = ethers.encodeBase58(ownerPublicKeyInBytes);
   console.log(ownerPublicKey, "ownerPublicKey");
 
-  const seed = "seed" + Date.now().toString(); // random seed on each script call
-  const createWithSeed = await web3.PublicKey.createWithSeed(
-    new web3.PublicKey(contractPublicKey),
-    seed,
-    new web3.PublicKey(TOKEN_PROGRAM_ID)
-  );
-  console.log(createWithSeed, "createWithSeed");
-
   const minBalance = await connection.getMinimumBalanceForRentExemption(
     MINT_SIZE
   );
@@ -222,17 +214,23 @@ async function main() {
   console.log("\n ***OWNER*** Broadcast Raydium create WSOL/TNEON3 pool ... ");
   solanaTx = new web3.Transaction();
 
-  builder.instructions[0].keys.push({
+  builder.instructions[0].keys[0] = {
     pubkey: new web3.PublicKey(payer),
     isSigner: true,
     isWritable: true, // Mark as writable only if needed
-  });
+  };
 
-  builder.instructions[2].keys.push({
+  builder.instructions[0].keys[2] = {
+    pubkey: new web3.PublicKey(contractPublicKey),
+    isSigner: true,
+    isWritable: false, // Mark as writable only if needed
+  };
+
+  builder.instructions[2].keys[17] = {
     pubkey: new web3.PublicKey(payer),
     isSigner: true,
     isWritable: true, // Mark as writable only if needed
-  });
+  };
 
   console.log(builder.instructions[0], "createPoolOnRaydium0");
   console.log(builder.instructions[1], "createPoolOnRaydium1");
@@ -245,7 +243,7 @@ async function main() {
   console.log("Processing batchExecute method with all instructions ...");
   [tx, receipt] = await config.utils.batchExecute(
     solanaTx.instructions,
-    [10000000000, 0, 100000000],
+    [minBalance, 0, 10000000000],
     TestCallSolana,
     undefined,
     owner
