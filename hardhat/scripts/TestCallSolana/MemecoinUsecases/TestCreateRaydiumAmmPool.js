@@ -210,10 +210,9 @@ async function main() {
 
     startTime: new BN(0), // Unit in seconds
     ownerInfo: {
-      feePayer: new web3.PublicKey(payer),
+      //feePayer: new web3.PublicKey(payer),
       useSOLBalance: true,
-      //owner: new web3.PublicKey(payer), // The keypair that signs transactions
-      //authority: new web3.PublicKey(contractPublicKey), // The PDA managing the pool
+      //owner: new web3.PublicKey(contractPublicKey), // The keypair that signs transactions
     },
     feePayer: new web3.PublicKey(payer),
     associatedOnly: false,
@@ -226,6 +225,7 @@ async function main() {
       microLamports: 46591500,
     },*/
   });
+  console.log("Instruction builder:", builder);
 
   // /BUILD RAYDIUM CREATE POOL INSTRUCTION
 
