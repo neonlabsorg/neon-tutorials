@@ -15,12 +15,12 @@ const {
   DEVNET_PROGRAM_ID,
 } = require("@raydium-io/raydium-sdk-v2");
 const { config } = require("../config");
-const { initSdk, txVersion } = require("./config");
+const { initSdk, txVersion, connection } = require("./config");
 const BN = require("bn.js");
 
 async function main() {
-  const [owner] = await ethers.getSigners();
-  const connection = new web3.Connection(config.SOLANA_NODE, "processed");
+  const [owner, user] = await ethers.getSigners();
+  //const connection = new web3.Connection(config.SOLANA_NODE, "processed");
 
   const raydium = await initSdk();
   //console.log(raydium);
@@ -68,11 +68,27 @@ async function main() {
   const payer = ethers.encodeBase58(await TestCallSolana.getPayer());
   console.log(payer, "payer");
 
+  const payerBalance = await connection.getBalance(new web3.PublicKey(payer));
+  console.log(
+    "Payer SOL Balance:",
+    payerBalance / web3.LAMPORTS_PER_SOL,
+    "SOL"
+  );
+
   const contractPublicKeyInBytes = await TestCallSolana.getNeonAddress(
     TestCallSolanaAddress
   );
   const contractPublicKey = ethers.encodeBase58(contractPublicKeyInBytes);
   console.log(contractPublicKey, "contractPublicKey");
+
+  const contractBalance = await connection.getBalance(
+    new web3.PublicKey(contractPublicKey)
+  );
+  console.log(
+    "Contract SOL Balance:",
+    contractBalance / web3.LAMPORTS_PER_SOL,
+    "SOL"
+  );
 
   const ownerPublicKeyInBytes = await TestCallSolana.getNeonAddress(owner);
   const ownerPublicKey = ethers.encodeBase58(ownerPublicKeyInBytes);
@@ -84,12 +100,12 @@ async function main() {
   console.log("Minimum balance:", minBalance);
 
   console.log("\n ***USER*** Broadcast WSOL approval ... ");
-  tx = await WSOL.connect(owner).approve(TestCallSolanaAddress, 0.03 * 10 ** 9);
+  tx = await WSOL.connect(user).approve(TestCallSolanaAddress, 0.03 * 10 ** 9);
   await tx.wait(1);
   console.log(tx, "tx");
 
   console.log("\n ***USER*** Broadcast TNEON3 approval ... ");
-  tx = await TNEON3.connect(owner).approve(TestCallSolanaAddress, 10 * 10 ** 6);
+  tx = await TNEON3.connect(user).approve(TestCallSolanaAddress, 10 * 10 ** 6);
   await tx.wait(1);
   console.log(tx, "tx");
 
@@ -131,7 +147,7 @@ async function main() {
   console.log(ataContractTNEON3, "ataContractTNEON3");
 
   const marketId = new web3.PublicKey(
-    "CatTLfgPb8y6y1vLQMJsSPrPfGUSbtLQomdxGf9mxYZo"
+    "4rpopgZ7i2idPHhSqSoZmZNXhZTstHyWjfAaa4qnx4U2"
   );
 
   console.log("Openbook Devnet program id:", DEVNET_PROGRAM_ID.OPENBOOK_MARKET);
@@ -141,6 +157,7 @@ async function main() {
   const marketBufferInfo = await connection.getAccountInfo(
     new web3.PublicKey(marketId)
   );
+
   const { baseMint, quoteMint } = MARKET_STATE_LAYOUT_V3.decode(
     marketBufferInfo.data
   );
@@ -193,7 +210,10 @@ async function main() {
 
     startTime: new BN(0), // Unit in seconds
     ownerInfo: {
+      feePayer: new web3.PublicKey(payer),
       useSOLBalance: true,
+      //owner: new web3.PublicKey(payer), // The keypair that signs transactions
+      //authority: new web3.PublicKey(contractPublicKey), // The PDA managing the pool
     },
     feePayer: new web3.PublicKey(payer),
     associatedOnly: false,
@@ -207,14 +227,12 @@ async function main() {
     },*/
   });
 
-  console.log("Transaction builder array:", builder);
-
   // /BUILD RAYDIUM CREATE POOL INSTRUCTION
 
   console.log("\n ***OWNER*** Broadcast Raydium create WSOL/TNEON3 pool ... ");
   solanaTx = new web3.Transaction();
 
-  builder.instructions[0].keys[0] = {
+  /*builder.instructions[0].keys[0] = {
     pubkey: new web3.PublicKey(payer),
     isSigner: true,
     isWritable: true, // Mark as writable only if needed
@@ -230,7 +248,23 @@ async function main() {
     pubkey: new web3.PublicKey(payer),
     isSigner: true,
     isWritable: true, // Mark as writable only if needed
-  };
+  };*/
+
+  /*const elementToInsert = {
+    pubkey: new web3.PublicKey(contractPublicKey),
+    isSigner: true,
+    isWritable: false, // Mark as writable only if needed
+  }; // Element to insert
+  const position = 21; // Insert at index 5 (6th position in 1-based index)
+
+  // Insert element at the desired position
+  builder.instructions[2].keys.splice(position, 0, elementToInsert);*/
+
+  /*builder.instructions[2].keys[21] = {
+    pubkey: new web3.PublicKey(contractPublicKey),
+    isSigner: true,
+    isWritable: false, // Mark as writable only if needed
+  };*/
 
   console.log(builder.instructions[0], "createPoolOnRaydium0");
   console.log(builder.instructions[1], "createPoolOnRaydium1");
@@ -243,40 +277,16 @@ async function main() {
   console.log("Processing batchExecute method with all instructions ...");
   [tx, receipt] = await config.utils.batchExecute(
     solanaTx.instructions,
-    [minBalance, 0, 10000000000],
+    //[5000000000],
+    [minBalance, 0, 5000000000],
     TestCallSolana,
     undefined,
-    owner
+    user
   );
   console.log(tx, "tx");
   for (let i = 0, len = receipt.logs.length; i < len; ++i) {
     console.log(receipt.logs[i].args, " receipt args instruction #", i);
   }
-
-  /*console.log("\nProcessing each instruction separately...");
-  for (let i = 0; i < solanaTx.instructions.length; i++) {
-    console.log("📌 Executing Instruction", i);
-    console.log(
-      "📌 Program ID:",
-      solanaTx.instructions[i].programId.toBase58()
-    );
-    console.log("📌 Keys:", solanaTx.instructions[i].keys);
-    console.log("📌 Data:", solanaTx.instructions[i].data.toString("hex"));
-
-    try {
-      let [tx, receipt] = await config.utils.execute(
-        solanaTx.instructions[i],
-        1000000000,
-        TestCallSolana,
-        undefined,
-        owner
-      );
-      console.log("✅ Instruction", i, "executed successfully.");
-    } catch (error) {
-      console.error("❌ Instruction", i, "failed:", error);
-      break; // Stop execution if an instruction fails
-    }
-  }*/
 }
 
 // We recommend this pattern to be able to use async/await everywhere

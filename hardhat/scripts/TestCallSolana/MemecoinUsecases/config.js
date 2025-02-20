@@ -16,8 +16,12 @@ const web3 = require("@solana/web3.js");
   bs58.decode(process.env.SOLANA_PRIVATE_KEY)
 );*/
 
-const owner = new web3.PublicKey(
+/*const owner = new web3.PublicKey(
   "H3Y9Mv8qWVgbSfxejL9UJ5SVcw9svXGuSu3qiYerb8R5"
+);*/
+
+const owner = new web3.PublicKey(
+  "FpPQkYTwEP6fJZrpT1izRQ8Zww9oR23Q2HM9UNkT4bTm"
 );
 
 /*const connection = new Connection(

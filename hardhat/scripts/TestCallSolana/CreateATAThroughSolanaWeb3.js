@@ -24,7 +24,7 @@ const keypair = web3.Keypair.fromSecretKey(
 console.log(keypair.publicKey.toBase58(), "payer");
 
 const publicKey = new web3.PublicKey(
-  "H3Y9Mv8qWVgbSfxejL9UJ5SVcw9svXGuSu3qiYerb8R5"
+  "FpPQkYTwEP6fJZrpT1izRQ8Zww9oR23Q2HM9UNkT4bTm"
 ); // set your contractPublicKey here
 const tokenMintsArray = [
   "So11111111111111111111111111111111111111112", // WSOL
