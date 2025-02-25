@@ -26,9 +26,11 @@ console.log(keypair.publicKey.toBase58(), "payer");
 const publicKey = new web3.PublicKey(
   "FpPQkYTwEP6fJZrpT1izRQ8Zww9oR23Q2HM9UNkT4bTm"
 ); // set your contractPublicKey here
+
 const tokenMintsArray = [
   "So11111111111111111111111111111111111111112", // WSOL
-  "EJ6Wmsg55NMPfv7X7dQGiRzKdP9BULH8P9sYrfNwCFdL", // TNEON3
+  "HEantcHdnmLdjo7noFC5Qqhz3NCG8m6ivvk5vp7QZX8Q", // TNEON2
+  //"EJ6Wmsg55NMPfv7X7dQGiRzKdP9BULH8P9sYrfNwCFdL", // TNEON3
   //'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', // USDC
   //'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB',// USDT
   //'3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh', // WBTC
