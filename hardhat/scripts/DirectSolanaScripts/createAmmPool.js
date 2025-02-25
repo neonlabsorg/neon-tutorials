@@ -12,7 +12,7 @@ const BN = require("bn.js");
 
 const createAmmPool = async () => {
   try {
-    const raydium = await initSdk();
+    const raydium = await initSdk({ loadToken: true });
     const marketId = new web3.PublicKey(
       //"BhTBX9GdK6MVpCCmd4s37Gxe5Vu7HnoBAzeWnim5svyi" // Mainnet
       "8XNyJraQbtUTgiXvNTGS9AA9SxmoCXBUSnqeyn3jroej" // Devnet
@@ -80,11 +80,6 @@ const createAmmPool = async () => {
         },
         baseAmount: new BN(4000000),
         quoteAmount: new BN(1000000000),
-
-        // sol devnet faucet: https://faucet.solana.com/
-        // baseAmount: new BN(4 * 10 ** 9), // If devnet pool with SOL/WSOL, use amount >= 4*10**9
-        // quoteAmount: new BN(4 * 10 ** 9), // If devnet pool with SOL/WSOL, use amount >= 4*10**9
-
         startTime: new BN(0), // Unit in seconds
         ownerInfo: {
           useSOLBalance: true,
@@ -110,7 +105,7 @@ const createAmmPool = async () => {
     //console.log(execute, extInfo);
 
     // Don't want to wait for confirmation? Set sendAndConfirm to false or omit it in execute
-    /*const { txId } = await execute({ sendAndConfirm: false });
+    const { txId } = await execute({ sendAndConfirm: false });
     console.log(
       "AMM pool created! txId:",
       txId,
@@ -122,7 +117,7 @@ const createAmmPool = async () => {
         }),
         {}
       )
-    );*/
+    );
   } catch (error) {
     console.error("Error creating pool:", error);
   } finally {
