@@ -1,4 +1,5 @@
 const web3 = require("@solana/web3.js");
+const { Connection, Keypair, clusterApiUrl } = require("@solana/web3.js");
 const {
   Liquidity,
   Token,
@@ -15,6 +16,11 @@ const {
   SPL_ACCOUNT_LAYOUT,
   Market,
 } = require("@raydium-io/raydium-sdk");
+const {
+  Raydium,
+  TxVersion,
+  parseTokenAccountResp,
+} = require("@raydium-io/raydium-sdk-v2");
 const fs = require("fs");
 const { BN } = require("bn.js");
 
@@ -26,7 +32,6 @@ const config = {
     "0x5BAB7cAb78D378bBf325705C51ec4649200A311b",
   ICS_FLOW_MAINNET: "0x16906ADb704590F94F8a32ff0a690306A34A0bfC",
   VAULTCRAFT_FLOW_MAINNET: "0xBD8bAFA0b09920b2933dd0eD044f27B10B20F265",
-  CREATE_RAYDIUM_POOL_DEVNET: "0xE498ae688CC61626D1b3a43C250008E6345107F4", //"0x19d095f1F3d8dbfAf4a288513651bED7181ffe7b",
   DATA: {
     SVM: {
       ADDRESSES: {
@@ -39,19 +44,25 @@ const config = {
         TNEON2: "HEantcHdnmLdjo7noFC5Qqhz3NCG8m6ivvk5vp7QZX8Q", // DEVNET
         TNEON3: "EJ6Wmsg55NMPfv7X7dQGiRzKdP9BULH8P9sYrfNwCFdL", // DEVNET
         NEON_PROGRAM: "NeonVMyRX5GbCrsAHnUwx1nYYoJAtskU1bWUo6JGNyG",
-        NEON_PROGRAM_DEVNET: "eeLSJgWzzxrqKv1UxtRVVH8FX3qCQWUs9QuAjJpETGU", // DEVNET
+        NEON_PROGRAM_DEVNET: "eeLSJgWzzxrqKv1UxtRVVH8FX3qCQWUs9QuAjJpETGU",
         ORCA_PROGRAM: "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",
         ORCA_WSOL_USDC_POOL: "Czfq3xZZDmsdGdUyrNLtRhGc47cXcZtLG4crryfu44zE",
         ORCA_WBTC_USDC_POOL: "55BrDTCLWayM16GwrMEQU57o4PTm6ceF9wavSdNZcEiy",
         WHIRLPOOLS_CONFIG: "2LecshUwdy9xi7meFgHtFJQNSKk4KdTrcpvaB56dP2NQ",
-        RAYDIUM_PROGRAM: "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8",
-        RAYDIUM_PROGRAM_DEVNET: "HWy1jotHpo6UqeQxx49dpYYdQB8wj9Qk9MdxwjLvDHB8", //DEVNET
+        RAYDIUM_OPENBOOK_AMM_PROGRAM:
+          "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8",
+        RAYDIUM_OPENBOOK_AMM_PROGRAM_DEVNET:
+          "HWy1jotHpo6UqeQxx49dpYYdQB8wj9Qk9MdxwjLvDHB8",
+        RAYDIUM_CPMM_PROGRAM_DEVNET:
+          "CPMDWBwJDtYax9qW7AyRuVC19Cc4L4Vcy4n2BHAbHkCW",
         RAYDIUM_RAY_USDC_POOL: "6UmmUiYoBjSrhakAobJw8BvkmJtDVxaeBtbt7rxWo1mg",
         RAYDIUM_RAY_SOL_POOL: "AVs9TA4nWDzfPJE9gGVNJMVhcQy3V9PGazuz33BfG2RA",
         RAYDIUM_SOL_USDC_POOL: "58oQChx4yWmvKdwLLZzBi4ChoCc2fqCUWBkwMihLYQo2",
         RAYDIUM_SOL_WBTC_POOL: "HCfytQ49w6Dn9UhHCqjNYTZYQ6z5SwqmsyYYqW4EKDdA",
         RAYDIUM_SOL_USDT_POOL: "7XawhbbxtsRcQA8KTkHT9f9nc6d69UwqCDh6U5EEbEmX",
         JUPITER_PROGRAM: "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+        OPENBOOK_MARKET_ID_DEVNET:
+          "4rpopgZ7i2idPHhSqSoZmZNXhZTstHyWjfAaa4qnx4U2",
       },
     },
     EVM: {
@@ -61,9 +72,6 @@ const config = {
         USDC: "0xea6b04272f9f62f997f666f07d3a974134f7ffb9",
         USDT: "0x5f0155d08eF4aaE2B500AefB64A3419dA8bB611a",
         WBTC: "0x16a3Fe59080D6944A42B441E44450432C1445372",
-        TNEON: "0x4a146030d717a06e4ee7771b7c21cf836649d45f", // MAINNET
-        TNEON2: "0x2e6bff0797e262182d048e517ff7a6aef9131842", // DEVNET
-        TNEON3: "0xc4779cd9883cb15e71cc5fd4f5250d4af6846e88", // DEVNET
       },
       ABIs: {
         ERC20ForSPL: [
@@ -319,6 +327,26 @@ const config = {
           },
         ],
       },
+    },
+  },
+  initialize: {
+    initRaydiumSDK: async function (params, payer) {
+      const owner = new web3.PublicKey(payer);
+      const connection = new Connection(clusterApiUrl("devnet")); // For devnet
+      const txVersion = TxVersion.LEGACY; // or TxVersion.LEGACY || TxVersion.V0
+      let raydium;
+
+      //if (raydium) return raydium;
+      raydium = await Raydium.load({
+        owner,
+        connection,
+        cluster: "devnet", // 'mainnet' | 'devnet'
+        disableFeatureCheck: true,
+        disableLoadToken: !(params && params.loadToken),
+        blockhashCommitment: "finalized",
+      });
+      console.log(raydium);
+      return raydium, txVersion;
     },
   },
   utils: {
