@@ -135,7 +135,7 @@ contract TestComposability is TestCallSolana {
             )), // salt
             LibSPLTokenProgram.ATA_SIZE, // space
             LibSPLTokenProgram.ATA_RENT_EXEMPT_BALANCE, // lamports
-            LibSPLTokenProgram.TOKEN_PROGRAM_ID // Owner must be SPL Associated Token program
+            LibSPLTokenProgram.TOKEN_PROGRAM_ID // Owner must be SPL Token program
         );
         // Format initializeAccount2 instruction
         (   bytes32[] memory accounts,
@@ -202,8 +202,8 @@ contract TestComposability is TestCallSolana {
     ) external {
         // Sender's Solana account is derived from msg.sender
         bytes32 sender = CALL_SOLANA.getNeonAddress(msg.sender);
-        // Authentication: we derive the sender's associated token account from the sender account, the token mint account and the nonce
-        // that was used to create the sender's associated token account through this contract
+        // Authentication: we derive the sender's associated token account from the sender account, the token mint
+        // account and the nonce that was used to create the sender's associated token account through this contract
         bytes32 senderATA = CALL_SOLANA.getResourceAddress(sha256(abi.encodePacked(
             sender,
             LibSPLTokenProgram.TOKEN_PROGRAM_ID,

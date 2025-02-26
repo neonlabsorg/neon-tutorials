@@ -8,7 +8,7 @@ library LibUtils {
     /// @notice Helper function to format a uint256 value as right-padded little-endian bytes
     /// @param bigEndian The uint256 value to be formatted
     /// @return littleEndian The same value formatted as a right-padded little-endian bytes32
-    function convertUintToLittleEndianBytes32(uint256 bigEndian) public pure returns (bytes32 littleEndian) {
+    function convertUintToLittleEndianBytes32(uint256 bigEndian) internal pure returns (bytes32 littleEndian) {
         assembly {
             for {let i := 0} lt(i, 32) {i := add(i, 1)} {
                 let nextBEByte := byte(sub(31, i), bigEndian) // Get BE bytes starting from the right

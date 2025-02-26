@@ -24,7 +24,7 @@ library LibSystemProgram {
         bytes memory seed,
         uint64 accountSize,
         uint64 rentExemptBalance
-    ) public pure returns (
+    ) internal pure returns (
         bytes32[] memory accounts,
         bool[] memory isSigner,
         bool[] memory isWritable,
@@ -70,7 +70,7 @@ library LibSystemProgram {
         bytes32 basePubKey,
         bytes32 programId,
         bytes memory seed
-    ) public pure returns(bytes32) {
+    ) internal pure returns(bytes32) {
         return sha256(abi.encodePacked(basePubKey, seed, programId));
     }
 }

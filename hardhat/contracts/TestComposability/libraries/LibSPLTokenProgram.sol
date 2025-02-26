@@ -24,7 +24,7 @@ library LibSPLTokenProgram {
         bytes32 tokenMint,
         bytes32 mintAuthority,
         bytes32 freezeAuthority
-    ) public pure returns (
+    ) internal pure returns (
         bytes32[] memory accounts,
         bool[] memory isSigner,
         bool[] memory isWritable,
@@ -56,7 +56,7 @@ library LibSPLTokenProgram {
         bytes32 ata,
         bytes32 tokenMint,
         bytes32 owner
-    ) public pure returns (
+    ) internal pure returns (
         bytes32[] memory accounts,
         bool[] memory isSigner,
         bool[] memory isWritable,
@@ -93,7 +93,7 @@ library LibSPLTokenProgram {
         bytes32 mintAuthority,
         bytes32 recipientATA,
         uint64 amount
-    ) public pure returns (
+    ) internal pure returns (
         bytes32[] memory accounts,
         bool[] memory isSigner,
         bool[] memory isWritable,
@@ -132,7 +132,7 @@ library LibSPLTokenProgram {
         bytes32 recipientATA,
         bytes32 sender,
         uint64 amount
-    ) public pure returns (
+    ) internal pure returns (
         bytes32[] memory accounts,
         bool[] memory isSigner,
         bool[] memory isWritable,
@@ -170,7 +170,7 @@ library LibSPLTokenProgram {
         bytes32 tokenMint,
         bytes32 currentAuthority,
         bytes32 newAuthority
-    ) public pure returns (
+    ) internal pure returns (
         bytes32[] memory accounts,
         bool[] memory isSigner,
         bool[] memory isWritable,
@@ -203,7 +203,7 @@ library LibSPLTokenProgram {
     function formatRevokeInstruction(
         bytes32 ata,
         bytes32 owner
-    ) public pure returns (
+    ) internal pure returns (
         bytes32[] memory accounts,
         bool[] memory isSigner,
         bool[] memory isWritable,

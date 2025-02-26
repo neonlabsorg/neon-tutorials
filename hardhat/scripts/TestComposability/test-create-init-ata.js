@@ -90,7 +90,7 @@ async function main() {
     console.log("\n")
 
     ata = await testComposability.ata()
-    console.log(ethers.encodeBase58(ata), 'Created NeonEVN user ATA')
+    console.log(ethers.encodeBase58(ata), 'Created NeonEVM user ATA')
     info = await solanaConnection.getTokenAccountBalance(new web3.PublicKey(ethers.encodeBase58(ata)));
     console.log(info, 'Created NeonEVN user ATA info')
 }

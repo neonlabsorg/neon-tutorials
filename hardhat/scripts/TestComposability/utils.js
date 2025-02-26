@@ -18,61 +18,7 @@ async function airdropNEON(address, amount) {
 }
 
 async function deployTestComposabilityContract() {
-    let libUtils
-    const libUtilsLibraryFactory = await ethers.getContractFactory("LibUtils")
-    if (!config.libUtils[network.name]) {
-        console.log("\nDeploying LibUtils library to " + network.name + "...")
-        libUtils = await libUtilsLibraryFactory.deploy()
-        await libUtils.waitForDeployment()
-        console.log("LibUtils library deployed to: " + libUtils.target)
-    } else {
-        console.log("\nLibUtils library already deployed to: " + config.libUtils[network.name])
-        libUtils = libUtilsLibraryFactory.attach(config.libUtils[network.name])
-    }
-
-    let libSystemProgram
-    const libSystemProgramLibraryFactory = await ethers.getContractFactory(
-        "LibSystemProgram",
-        { libraries: {
-                LibUtils: libUtils.target
-        }}
-    )
-    if (!config.libSystemProgram[network.name]) {
-        console.log("\nDeploying LibSystemProgram library to " + network.name + "...")
-        libSystemProgram = await libSystemProgramLibraryFactory.deploy()
-        await libSystemProgram.waitForDeployment()
-        console.log("LibSystemProgram library deployed to: " + libSystemProgram.target)
-    } else {
-        console.log("\nLibSystemProgram library already deployed to: " + config.libSystemProgram[network.name])
-        libSystemProgram = libSystemProgramLibraryFactory.attach(config.libSystemProgram[network.name])
-    }
-
-    let libSPLTokenProgram
-    const libSPLTokenProgramLibraryFactory = await ethers.getContractFactory(
-        "LibSPLTokenProgram",
-        { libraries: {
-                LibUtils: libUtils.target
-            }}
-    )
-    if (!config.libSPLTokenProgram[network.name]) {
-        console.log("\nDeploying LibSPLTokenProgram library to " + network.name + "...")
-        libSPLTokenProgram = await libSPLTokenProgramLibraryFactory.deploy()
-        await libSPLTokenProgram.waitForDeployment()
-        console.log("LibSPLTokenProgram library deployed to: " + libSPLTokenProgram.target)
-    } else {
-        console.log("\nLibSPLTokenProgram library already deployed to: " + config.libSPLTokenProgram[network.name])
-        libSPLTokenProgram = libSPLTokenProgramLibraryFactory.attach(config.libSPLTokenProgram[network.name])
-    }
-
-    const testComposabilityContractFactory = await ethers.getContractFactory(
-        "TestComposability",
-        { libraries: {
-                LibSystemProgram: libSystemProgram.target,
-                LibSPLTokenProgram: libSPLTokenProgram.target,
-                // CallSolanaHelperLib: callSolanaHelperLib.target
-        }}
-    )
-
+    const testComposabilityContractFactory = await ethers.getContractFactory("TestComposability")
     let testComposability
     if (!config.testComposability[network.name]) {
         console.log("\nDeploying TestComposability contract to " + network.name + "...")
