@@ -21,11 +21,11 @@ contract TestComposability is TestCallSolana {
 
     function getAssociatedTokenAccount(
         bytes32 _tokenMint,
-        address user,
+        bytes32 userPubKey,
         uint8 nonce
     ) public view returns(bytes32) {
         return CALL_SOLANA.getResourceAddress(sha256(abi.encodePacked(
-            CALL_SOLANA.getNeonAddress(user),
+            userPubKey,
             LibSPLTokenProgram.TOKEN_PROGRAM_ID,
             _tokenMint,
             nonce,

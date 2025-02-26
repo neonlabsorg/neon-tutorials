@@ -1,6 +1,7 @@
 const { ethers, network, run } = require("hardhat")
 const web3 = require("@solana/web3.js")
 const { deployTestComposabilityContract, getSolanaTransactions } = require("./utils")
+const config = require("./config");
 
 async function main(testComposabilityContractAddress = null) {
     await run("compile")
@@ -13,12 +14,14 @@ async function main(testComposabilityContractAddress = null) {
 
     // =================================== Mint SPL token amount to deployer ATA ====================================
 
-    const seed = 'myTokenMintSeed03'
+    const seed = config.tokenMintSeed[network.name]
     const tokenMint = await testComposability.tokenMint()
+    const decimals = config.tokenMintDecimals[network.name]
+    const deployerPublicKeyInBytes = await testComposability.getNeonAddress(deployer.address)
     const deployerATA = await testComposability.getAssociatedTokenAccount(
         tokenMint,
-        deployer.address,
-        255
+        deployerPublicKeyInBytes,
+        config.ATANonce[network.name].deployer // nonce
     )
 
     console.log('\nCalling testComposability.testMintTokens: ')
@@ -26,7 +29,7 @@ async function main(testComposabilityContractAddress = null) {
     let tx = await testComposability.connect(deployer).testMintTokens(
         Buffer.from(seed), // Seed that was used to generate SPL token mint
         deployerATA, // Solana recipient ATA
-        1000 * 10 ** 9 // amount (mint 1000 tokens)
+        1000 * 10 ** decimals // amount (mint 1000 tokens)
     )
 
     console.log('\nNeonEVM transaction hash: ' + tx.hash)

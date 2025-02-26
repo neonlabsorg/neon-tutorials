@@ -2,6 +2,7 @@ const { ethers, network, run } = require("hardhat")
 const web3 = require("@solana/web3.js")
 const { getMint } = require('@solana/spl-token')
 const { deployTestComposabilityContract, getSolanaTransactions } = require("./utils")
+const config = require("./config");
 
 async function main(testComposabilityContractAddress = null) {
     await run("compile")
@@ -17,7 +18,7 @@ async function main(testComposabilityContractAddress = null) {
     // =================================== Update SPL token mint authority ====================================
 
     const newAuthority = (await web3.Keypair.generate()).publicKey.toBuffer()
-    const seed = 'myTokenMintSeed03'
+    const seed = config.tokenMintSeed[network.name]
 
     console.log('\nCalling testComposability.testUpdateMintAuthority: ')
 

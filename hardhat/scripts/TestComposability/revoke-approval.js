@@ -18,11 +18,13 @@ async function main(testComposabilityContractAddress = null) {
     // =================================== Delegate deployer ATA to NeonEVM user ====================================
 
     const tokenMint = await testComposability.tokenMint()
+    const decimals = config.tokenMintDecimals[network.name]
     const contractPublicKeyInBytes = await testComposability.getNeonAddress(testComposability.target)
+    const deployerPublicKeyInBytes = await testComposability.getNeonAddress(deployer.address)
     const deployerATAInBytes = await testComposability.getAssociatedTokenAccount(
         tokenMint,
-        deployer.address,
-        255
+        deployerPublicKeyInBytes,
+        config.ATANonce[network.name].deployer // nonce that was used to create the ATA
     )
     const neonEVMUser = (await ethers.getSigners())[1]
     const neonEVMUserPublicKeyInBytes = await testComposability.getNeonAddress(neonEVMUser)
@@ -32,7 +34,7 @@ async function main(testComposabilityContractAddress = null) {
         new web3.PublicKey(ethers.encodeBase58(deployerATAInBytes)), // ATA to delegate
         new web3.PublicKey(ethers.encodeBase58(neonEVMUserPublicKeyInBytes)), // Delegate
         new web3.PublicKey(ethers.encodeBase58(contractPublicKeyInBytes)), // ATA owner
-        1000 * 10 ** 9 // Delegate 1000 tokens
+        1000 * 10 ** decimals // Delegate 1000 tokens
     )
 
     solanaTransaction.add(approveIx)
@@ -51,14 +53,11 @@ async function main(testComposabilityContractAddress = null) {
 
     // =================================== Revoke all delegation from deployer ATA ====================================
 
-    const deployerATANonce = 255 // This must be the same nonce that was used to create the sender's ATA through
-    // the TestComposability contract
-
     console.log('\nCalling testComposability.testRevokeApproval: ')
 
     tx = await testComposability.connect(deployer).testRevokeApproval(
         tokenMint,
-        deployerATANonce
+        config.ATANonce[network.name].deployer // nonce that was used to create the ATA
     )
 
     console.log('\nNeonEVM transaction hash: ' + tx.hash)

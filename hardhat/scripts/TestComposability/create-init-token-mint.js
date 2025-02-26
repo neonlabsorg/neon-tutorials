@@ -2,6 +2,7 @@ const { ethers, network, run } = require("hardhat")
 const web3 = require("@solana/web3.js")
 const { getMint } = require('@solana/spl-token')
 const { deployTestComposabilityContract, getSolanaTransactions } = require("./utils")
+const config = require("./config");
 
 async function main(testComposabilityContractAddress = null) {
     await run("compile")
@@ -16,8 +17,8 @@ async function main(testComposabilityContractAddress = null) {
 
     // =================================== Create and initialize new SPL token mint ====================================
 
-    const seed = 'myTokenMintSeed03'
-    const decimals = 9
+    const seed = config.tokenMintSeed[network.name]
+    const decimals = config.tokenMintDecimals[network.name]
 
     console.log('\nCalling testComposability.testCreateInitializeTokenMint: ')
 

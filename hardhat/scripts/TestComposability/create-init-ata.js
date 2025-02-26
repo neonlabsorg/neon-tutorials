@@ -1,6 +1,7 @@
 const { ethers, network, run } = require("hardhat")
 const web3 = require("@solana/web3.js")
 const { deployTestComposabilityContract, getSolanaTransactions } = require("./utils")
+const config = require("./config");
 
 async function main(testComposabilityContractAddress = null) {
     await run("compile")
@@ -23,7 +24,7 @@ async function main(testComposabilityContractAddress = null) {
         tokenMintInBytes,
         Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex'), // Leave owner field empty so that msg.sender controls the ATA through TestComposability contract
         Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex'), // Leave tokenOwner field empty so that TestComposability contract owns the ATA
-        255 // nonce
+        config.ATANonce[network.name].deployer // nonce
     )
 
     console.log('\nNeonEVM transaction hash: ' + tx.hash)
@@ -39,7 +40,12 @@ async function main(testComposabilityContractAddress = null) {
     }
     console.log('\n')
 
-    let ata = await testComposability.ata()
+    const deployerPublicKeyInBytes = await testComposability.getNeonAddress(deployer.address)
+    let ata = await testComposability.getAssociatedTokenAccount(
+        tokenMintInBytes,
+        deployerPublicKeyInBytes,
+        config.ATANonce[network.name].deployer // nonce that was used to create the ATA
+    )
     console.log(ethers.encodeBase58(ata), '<-- deployer ATA')
     let info = await solanaConnection.getTokenAccountBalance(new web3.PublicKey(ethers.encodeBase58(ata)))
     console.log(info, '<-- deployer ATA info')
@@ -55,7 +61,7 @@ async function main(testComposabilityContractAddress = null) {
         tokenMintInBytes,
         neonEVMUserPublicKeyInBytes, // Pass NeonEVM user public key so that neonEVMUser controls the ATA through TestComposability contract
         Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex'), // Leave tokenOwner field empty so that TestComposability contract owns the ATA
-        255 // nonce
+        config.ATANonce[network.name].neonEVMUser // nonce
     )
 
     console.log('\nNeonEVM transaction hash: ' + tx.hash)
@@ -71,7 +77,11 @@ async function main(testComposabilityContractAddress = null) {
     }
     console.log('\n')
 
-    ata = await testComposability.ata()
+    ata = await testComposability.getAssociatedTokenAccount(
+        tokenMintInBytes,
+        neonEVMUserPublicKeyInBytes,
+        config.ATANonce[network.name].neonEVMUser // nonce that was used to create the ATA
+    )
     console.log(ethers.encodeBase58(ata), '<-- NeonEVM user ATA')
     info = await solanaConnection.getTokenAccountBalance(new web3.PublicKey(ethers.encodeBase58(ata)))
     console.log(info, '<-- NeonEVM user ATA info')
