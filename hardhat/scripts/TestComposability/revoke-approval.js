@@ -1,35 +1,19 @@
 const { ethers, network, run } = require("hardhat")
-const web3 = require("@solana/web3.js");
-const { airdropNEON, deployTestComposabilityContract, getSolanaTransactions } = require("./utils");
-const { createApproveInstruction, getAccount} = require("@solana/spl-token");
-const { config } = require("../TestCallSolana/config");
+const web3 = require("@solana/web3.js")
+const { deployTestComposabilityContract, getSolanaTransactions } = require("./utils")
+const { createApproveInstruction, getAccount} = require("@solana/spl-token")
+const { config } = require("../TestCallSolana/config")
 
-async function main() {
+async function main(testComposabilityContractAddress = null) {
     await run("compile")
+
+    console.log("\n\u{231B}", "\x1b[33m Testing on-chain formatting and execution of Solana Token program's \x1b[36mrevoke\x1b[33m instruction\x1b[0m")
 
     console.log("\nNetwork name: " + network.name)
 
-    if (!process.env.DEPLOYER_KEY) {
-        throw new Error("\nMissing private key: DEPLOYER_KEY")
-    }
+    const solanaConnection = new web3.Connection(process.env.SOLANA_NODE, "processed")
 
-    const deployer = (await ethers.getSigners())[0]
-    console.log("\nDeployer address: " + deployer.address)
-
-    let deployerBalance = BigInt(await ethers.provider.getBalance(deployer.address))
-    const minBalance = ethers.parseUnits("10000", 18) // 10000 NEON
-    if(
-        deployerBalance < minBalance &&
-        parseInt(ethers.formatUnits((minBalance - deployerBalance).toString(), 18)) > 0
-    ) {
-        await airdropNEON(deployer.address, parseInt(ethers.formatUnits((minBalance - deployerBalance).toString(), 18)))
-        deployerBalance = BigInt(await ethers.provider.getBalance(deployer.address))
-    }
-    console.log("\nDeployer balance: " + ethers.formatUnits(deployerBalance.toString(), 18) + " NEON")
-
-    const solanaConnection = new web3.Connection(process.env.SOLANA_NODE, "processed");
-
-    const testComposability = await deployTestComposabilityContract()
+    const { deployer, testComposability } = await deployTestComposabilityContract(testComposabilityContractAddress)
 
     // =================================== Delegate deployer ATA to NeonEVM user ====================================
 
@@ -39,10 +23,10 @@ async function main() {
         tokenMint,
         deployer.address,
         255
-    );
+    )
     const neonEVMUser = (await ethers.getSigners())[1]
     const neonEVMUserPublicKeyInBytes = await testComposability.getNeonAddress(neonEVMUser)
-    let solanaTransaction = new web3.Transaction();
+    let solanaTransaction = new web3.Transaction()
 
     const approveIx = createApproveInstruction(
         new web3.PublicKey(ethers.encodeBase58(deployerATAInBytes)), // ATA to delegate
@@ -60,10 +44,10 @@ async function main() {
         testComposability,
         undefined,
         deployer
-    );
+    )
 
     let info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(deployerATAInBytes)))
-    console.log(info, 'Deployer ATA info after approval')
+    console.log(info, '<-- deployer ATA info after approval')
 
     // =================================== Revoke all delegation from deployer ATA ====================================
 
@@ -91,12 +75,13 @@ async function main() {
     console.log("\n")
 
     info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(deployerATAInBytes)))
-    console.log(info, 'Deployer ATA info after revoke')
+    console.log(info, '<-- deployer ATA info after revoke')
+
+    console.log("\n\u{2705} \x1b[32mSuccess!\x1b[0m\n")
+
+    return(testComposability.target)
 }
 
-main()
-    .then(() => process.exit(0))
-    .catch((error) => {
-        console.error(error)
-        process.exit(1)
-    })
+module.exports = {
+    main
+}

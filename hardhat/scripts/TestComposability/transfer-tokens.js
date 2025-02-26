@@ -1,33 +1,17 @@
 const { ethers, network, run } = require("hardhat")
-const web3 = require("@solana/web3.js");
-const { airdropNEON, deployTestComposabilityContract, getSolanaTransactions } = require("./utils");
+const web3 = require("@solana/web3.js")
+const { deployTestComposabilityContract, getSolanaTransactions } = require("./utils")
 
-async function main() {
+async function main(testComposabilityContractAddress = null) {
     await run("compile")
+
+    console.log("\n\u{231B}", "\x1b[33m Testing on-chain formatting and execution of Solana Token program's \x1b[36mtransfer\x1b[33m instruction\x1b[0m")
 
     console.log("\nNetwork name: " + network.name)
 
-    if (!process.env.DEPLOYER_KEY) {
-        throw new Error("\nMissing private key: DEPLOYER_KEY")
-    }
+    const solanaConnection = new web3.Connection(process.env.SOLANA_NODE, "processed")
 
-    const deployer = (await ethers.getSigners())[0]
-    console.log("\nDeployer address: " + deployer.address)
-
-    let deployerBalance = BigInt(await ethers.provider.getBalance(deployer.address))
-    const minBalance = ethers.parseUnits("10000", 18) // 10000 NEON
-    if(
-        deployerBalance < minBalance &&
-        parseInt(ethers.formatUnits((minBalance - deployerBalance).toString(), 18)) > 0
-    ) {
-        await airdropNEON(deployer.address, parseInt(ethers.formatUnits((minBalance - deployerBalance).toString(), 18)))
-        deployerBalance = BigInt(await ethers.provider.getBalance(deployer.address))
-    }
-    console.log("\nDeployer balance: " + ethers.formatUnits(deployerBalance.toString(), 18) + " NEON")
-
-    const solanaConnection = new web3.Connection(process.env.SOLANA_NODE, "processed");
-
-    const testComposability = await deployTestComposabilityContract()
+    const { deployer, testComposability } = await deployTestComposabilityContract(testComposabilityContractAddress)
 
     // =================================== Create and initialize new ATA for Solana recipient ====================================
 
@@ -63,7 +47,7 @@ async function main() {
     console.log('Created Solana recipient ATA: ' + ethers.encodeBase58(solanaRecipientATAInBytes))
     let info = await solanaConnection.getTokenAccountBalance(
         new web3.PublicKey(ethers.encodeBase58(solanaRecipientATAInBytes))
-    );
+    )
     console.log('Initial Solana recipient ATA balance: ' + info.value.uiAmount)
 
     // =================================== Transfer SPL token amount from deployer ATA to NeonEVM user ATA ====================================
@@ -75,7 +59,7 @@ async function main() {
         tokenMintInBytes,
         neonEVMUser.address,
         255
-    );
+    )
     console.log('NeonEVM user ATA: ' + ethers.encodeBase58(neonEVMUserATAInBytes))
 
     console.log('\nCalling testComposability.testTransferTokens: ')
@@ -100,7 +84,7 @@ async function main() {
     }
     console.log("\n")
 
-    info = await solanaConnection.getTokenAccountBalance(new web3.PublicKey(ethers.encodeBase58(neonEVMUserATAInBytes)));
+    info = await solanaConnection.getTokenAccountBalance(new web3.PublicKey(ethers.encodeBase58(neonEVMUserATAInBytes)))
     console.log('New NeonEVM user ATA balance: ' + info.value.uiAmount)
 
     // =================================== Transfer SPL token amount from NeonEVM user ATA to Solana user ATA====================================
@@ -130,13 +114,14 @@ async function main() {
     }
     console.log("\n")
 
-    info = await solanaConnection.getTokenAccountBalance(new web3.PublicKey(ethers.encodeBase58(solanaRecipientATAInBytes)));
+    info = await solanaConnection.getTokenAccountBalance(new web3.PublicKey(ethers.encodeBase58(solanaRecipientATAInBytes)))
     console.log('New Solana user ATA balance: ' + info.value.uiAmount)
+
+    console.log("\n\u{2705} \x1b[32mSuccess!\x1b[0m\n")
+
+    return(testComposability.target)
 }
 
-main()
-    .then(() => process.exit(0))
-    .catch((error) => {
-        console.error(error)
-        process.exit(1)
-    })
+module.exports = {
+    main
+}

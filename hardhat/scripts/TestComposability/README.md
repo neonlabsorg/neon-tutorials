@@ -67,16 +67,16 @@ and executing a `transfer` instruction.
 
 ## Scripts
 
-The `TestComposability` contract is deployed along with imported libraries at the beginning of each script, unless the 
-`config.js` file already contains addresses for these contracts and libraries. When running several scripts in a row 
-which depend on each other's execution (like for instance: `test-create-init-token-mint` followed by 
-`test-create-init-ata` then `test-mint-tokens`), remember to add the addresses of deployed contracts and libraries to 
-the `config.js` file **after running the first script** so that subsequent scripts know to re-use those same contracts 
-and libraries.
+The `TestComposability` contract is deployed at the beginning of each script, unless a contract address is passed to the
+script's `main` function, or the `config.js` file already contains an address for this contract.
+
+To run all test scripts in a row:
+
+`npx hardhat run ./scripts/TestComposability/test.js --network <network_name>`
 
 ### System Program interactions
 
-* The `test-create-account-with-seed.js` script lets you format and execute _Solana_'s **System** program 
+* The `create-account-with-seed.js` script lets you format and execute _Solana_'s **System** program 
 `createAccountWithSeed` instruction.
 
 ### SPL Token Program interactions
@@ -87,21 +87,21 @@ method.
 
 * The `test-create-init-ata` script lets you format and execute _Solana_'s **SPL Token** program 
 `initializeAccount2` instruction to create and initialize two associated token accounts using _NeonEVM_ composability's 
-`createResource` method. Make sure to run the `test-create-init-token-mint` script first before running this script.
+`createResource` method. Make sure to have run the `test-create-init-token-mint` script first before running this script.
 
 * The `test-mint-tokens` script lets you format and execute _Solana_'s **SPL Token** program 
-`mintTo` instruction, minting SPL tokens to a recipient's associated token account. Make sure to run the 
+`mintTo` instruction, minting SPL tokens to a recipient's associated token account. Make sure to have run the 
 `test-create-init-token-mint` and `test-create-init-ata` scripts first before running this script.
 
 * The `test-transfer-tokens` script lets you format and execute _Solana_'s **SPL Token** program 
 `transfer` instruction, transferring SPL tokens from NeonEVM deployer ATA to another NeonEVM user ATA then from this 
-NeonEVM user ATA to a random Solana user ATA. Make sure to run the `test-create-init-token-mint`, `test-create-init-ata` and 
-`test-mint-tokens` scripts first before running this script.
+NeonEVM user ATA to a random Solana user ATA. Make sure to have run the `test-create-init-token-mint`, 
+`test-create-init-ata` and `test-mint-tokens` scripts first before running this script.
 
 * The `test-update-mint-authority` script lets you format and execute _Solana_'s **SPL Token** program
-`createSetAuthority` instruction in a way that updates a token's mint authority to a new account. Make sure to run the
-`test-create-init-token-mint` script first before running this script.
+`createSetAuthority` instruction in a way that updates a token's mint authority to a new account. Make sure to have run 
+the `test-create-init-token-mint` script first before running this script.
 
 * The `test-revoke-appoval` script lets you format and execute _Solana_'s **SPL Token** program `revoke` instruction to 
-revoke all delegation from from NeonEVM deployer ATA.  Make sure to run the `test-create-init-token-mint` and 
+revoke all delegation from NeonEVM deployer ATA. Make sure to have run the `test-create-init-token-mint` and 
 `test-create-init-ata` scripts first before running this script.
