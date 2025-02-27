@@ -29,7 +29,9 @@ const publicKey = new web3.PublicKey(
 
 const tokenMintsArray = [
   "So11111111111111111111111111111111111111112", // WSOL
-  "HEantcHdnmLdjo7noFC5Qqhz3NCG8m6ivvk5vp7QZX8Q", // TNEON2
+  "3MRAFn6aLDhnvfFbhnjn3sBjBfLTYQHoWhGMQyb7YW8d", // TNEON5
+  //"BnZKsX9Y2NfwCXFqpAT3Z6TSowdZBo1zAaxa29aSHjKQ", // TNEON4
+  //"HEantcHdnmLdjo7noFC5Qqhz3NCG8m6ivvk5vp7QZX8Q", // TNEON2
   //"EJ6Wmsg55NMPfv7X7dQGiRzKdP9BULH8P9sYrfNwCFdL", // TNEON3
   //'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', // USDC
   //'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB',// USDT

@@ -7,8 +7,6 @@ const {
   MINT_SIZE,
 } = require("@solana/spl-token");
 const {
-  CREATE_CPMM_POOL_PROGRAM,
-  CREATE_CPMM_POOL_FEE_ACC,
   DEVNET_PROGRAM_ID,
   getCpmmPdaAmmConfigId,
 } = require("@raydium-io/raydium-sdk-v2");
@@ -79,6 +77,23 @@ async function main() {
   );
   console.log("Minimum balance:", minBalance);
 
+  const ataContractTNEON5 = await getAssociatedTokenAddress(
+    new web3.PublicKey(config.DATA.SVM.ADDRESSES.TNEON5),
+    new web3.PublicKey(payer),
+    true
+  );
+  try {
+    await getAccount(connection, ataContractTNEON5);
+  } catch (err) {
+    return console.error(
+      "Account " +
+        payer +
+        " does not have initialized ATA account for TokenA ( " +
+        config.DATA.SVM.ADDRESSES.TNEON5 +
+        " )."
+    );
+  }
+
   const ataContractWSOL = await getAssociatedTokenAddress(
     new web3.PublicKey(config.DATA.SVM.ADDRESSES.WSOL),
     new web3.PublicKey(payer),
@@ -90,34 +105,19 @@ async function main() {
     return console.error(
       "\nAccount " +
         payer +
-        " does not have initialized ATA account for TokenA ( " +
+        " does not have initialized ATA account for TokenB ( " +
         config.DATA.SVM.ADDRESSES.WSOL +
         " )."
     );
   }
 
-  const ataContractTNEON2 = await getAssociatedTokenAddress(
-    new web3.PublicKey(config.DATA.SVM.ADDRESSES.TNEON2),
-    new web3.PublicKey(payer),
-    true
-  );
-  try {
-    await getAccount(connection, ataContractTNEON2);
-  } catch (err) {
-    return console.error(
-      "Account " +
-        payer +
-        " does not have initialized ATA account for TokenB ( " +
-        config.DATA.SVM.ADDRESSES.TNEON2 +
-        " )."
-    );
-  }
-
   console.log(ataContractWSOL, "ataContractWSOL");
-  console.log(ataContractTNEON2, "ataContractTNEON2");
+  console.log(ataContractTNEON5, "ataContractTNEON5");
+
+  //*************************** CREATE CPMM POOL *********************************//
 
   const mintA = await raydium.token.getTokenInfo(
-    config.DATA.SVM.ADDRESSES.TNEON2
+    config.DATA.SVM.ADDRESSES.TNEON5
   );
   const mintB = await raydium.token.getTokenInfo(
     config.DATA.SVM.ADDRESSES.WSOL
@@ -134,7 +134,7 @@ async function main() {
     });
   }
 
-  const { builder } = await raydium.cpmm.createPool({
+  const instructionBuilderForCreatePool = await raydium.cpmm.createPool({
     programId: DEVNET_PROGRAM_ID.CREATE_CPMM_POOL_PROGRAM, // devnet: DEVNET_PROGRAM_ID.CREATE_CPMM_POOL_PROGRAM
     poolFeeAccount: DEVNET_PROGRAM_ID.CREATE_CPMM_POOL_FEE_ACC, // devnet: DEVNET_PROGRAM_ID.CREATE_CPMM_POOL_FEE_ACC
     mintA,
@@ -151,32 +151,38 @@ async function main() {
     txVersion,
   });
 
-  console.log("Instruction builder:", builder);
+  console.log("Extra info:", instructionBuilderForCreatePool.extInfo);
 
   // First account of the 3rd instruction is the payer and the signer account and this account is not writable by default
   // Hence, the account has to be overwritten to add the account as writable.
-  builder.instructions[2].keys[0] = {
+  instructionBuilderForCreatePool.builder.instructions[2].keys[0] = {
     pubkey: new web3.PublicKey(payer),
     isSigner: true,
     isWritable: true,
   };
 
-  // /BUILD RAYDIUM CREATE POOL INSTRUCTION
-
   console.log(
-    "\n ***OWNER*** Broadcast Raydium create WSOL/TNEON2 CPMM pool ... "
+    instructionBuilderForCreatePool.builder.instructions[0],
+    "Create Account"
   );
-  console.log(builder.instructions[0], "Create Account");
-  console.log(builder.instructions[1], "Init Account");
-  console.log(builder.instructions[2], "Cpmm Create Pool");
+  console.log(
+    instructionBuilderForCreatePool.builder.instructions[1],
+    "Init Account"
+  );
+  console.log(
+    instructionBuilderForCreatePool.builder.instructions[2],
+    "Cpmm Create Pool"
+  );
 
+  //BUILD RAYDIUM CREATE POOL INSTRUCTION
+
+  console.log("\nBroadcast creating pool transaction...");
   solanaTx = new web3.Transaction();
-  solanaTx.add(builder.instructions[0]);
-  solanaTx.add(builder.instructions[1]);
-  solanaTx.add(builder.instructions[2]);
-  //solanaTx.add(builder.endInstructions[0]);
+  solanaTx.add(instructionBuilderForCreatePool.builder.instructions[0]);
+  solanaTx.add(instructionBuilderForCreatePool.builder.instructions[1]);
+  solanaTx.add(instructionBuilderForCreatePool.builder.instructions[2]);
 
-  console.log("Processing batchExecute method with all instructions ...");
+  console.log("\nProcessing batchExecute method with all instructions ...");
   [tx, receipt] = await config.utils.batchExecute(
     solanaTx.instructions,
     [minBalance, 0, 4000000000],

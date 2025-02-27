@@ -43,6 +43,8 @@ const config = {
         TNEON: "AX4fyYtJ3siMimcDercvZPQnus9SCG4xWicHJck9URhd", // MAINNET
         TNEON2: "HEantcHdnmLdjo7noFC5Qqhz3NCG8m6ivvk5vp7QZX8Q", // DEVNET
         TNEON3: "EJ6Wmsg55NMPfv7X7dQGiRzKdP9BULH8P9sYrfNwCFdL", // DEVNET
+        TNEON4: "BnZKsX9Y2NfwCXFqpAT3Z6TSowdZBo1zAaxa29aSHjKQ", // DEVNET
+        TNEON5: "3MRAFn6aLDhnvfFbhnjn3sBjBfLTYQHoWhGMQyb7YW8d", // DEVNET
         NEON_PROGRAM: "NeonVMyRX5GbCrsAHnUwx1nYYoJAtskU1bWUo6JGNyG",
         NEON_PROGRAM_DEVNET: "eeLSJgWzzxrqKv1UxtRVVH8FX3qCQWUs9QuAjJpETGU",
         ORCA_PROGRAM: "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",

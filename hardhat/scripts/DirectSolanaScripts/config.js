@@ -12,7 +12,7 @@ const bs58 = require("bs58");
 require("dotenv").config();
 
 const owner = Keypair.fromSecretKey(
-  bs58.default.decode(process.env.PRIVATE_KEY_OWNER)
+  bs58.decode(process.env.SOLANA_PRIVATE_KEY)
 );
 /*const connection = new Connection(
     "https://api.mainnet-beta.solana.com/",
