@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import { LibUtils } from "./LibUtils.sol";
+import { SolanaDataConverterLib } from "./SolanaDataConverterLib.sol";
+
+import { ICallSolana } from '../interfaces/ICallSolana.sol';
 
 /// @title LibSPLTokenProgram
 /// @notice Helper library for interactions with Solana's SPL Token program
@@ -14,6 +16,7 @@ library LibSPLTokenProgram {
     uint64 public constant MINT_RENT_EXEMPT_BALANCE = 1461600;
     uint64 public constant ATA_SIZE = 165;
     uint64 public constant ATA_RENT_EXEMPT_BALANCE = 2039280;
+    ICallSolana public constant CALL_SOLANA = ICallSolana(0xFF00000000000000000000000000000000000006);
 
     /// @notice Helper function to format a `initializeMint2` instruction
     /// @param decimals The decimals value for the new token mint to be initialized
@@ -115,7 +118,7 @@ library LibSPLTokenProgram {
         isWritable[2] = false;
 
         // Get amount in right-padded little-endian format
-        bytes32 amountLE = LibUtils.convertUintToLittleEndianBytes32(uint256(amount));
+        bytes32 amountLE = bytes32(SolanaDataConverterLib.readLittleEndianUnsigned256(uint256(amount)));
         data = abi.encodePacked(
             bytes1(0x07), // Instruction variant (see: https://github.com/solana-program/token/blob/08aa3ccecb30692bca18d6f927804337de82d5ff/program/src/instruction.rs#L508)
             bytes8(amountLE) // Amount (right-padded little-endian)
@@ -154,7 +157,7 @@ library LibSPLTokenProgram {
         isWritable[2] = false;
 
         // Get amount in right-padded little-endian format
-        bytes32 amountLE = LibUtils.convertUintToLittleEndianBytes32(uint256(amount));
+        bytes32 amountLE = bytes32(SolanaDataConverterLib.readLittleEndianUnsigned256(uint256(amount)));
         data = abi.encodePacked(
             bytes1(0x03), // Instruction variant (see: https://github.com/solana-program/token/blob/08aa3ccecb30692bca18d6f927804337de82d5ff/program/src/instruction.rs#L506)
             bytes8(amountLE) // Amount (right-padded little-endian)
@@ -224,5 +227,35 @@ library LibSPLTokenProgram {
         data = abi.encodePacked(
             bytes1(0x05) // Instruction variant (see: https://github.com/solana-program/token/blob/08aa3ccecb30692bca18d6f927804337de82d5ff/program/src/instruction.rs#L513)
         );
+    }
+
+    function getAssociatedTokenAccount(
+        bytes32 _tokenMint,
+        bytes32 userPubKey
+    ) internal view returns(bytes32) {
+        // Returns ATA derived with  nonce == 0 by default
+        return _getAssociatedTokenAccount(_tokenMint, userPubKey, 0);
+    }
+
+    function getAssociatedTokenAccount(
+        bytes32 _tokenMint,
+        bytes32 userPubKey,
+        uint8 nonce
+    ) internal view returns(bytes32) {
+        return _getAssociatedTokenAccount(_tokenMint, userPubKey, nonce);
+    }
+
+    function _getAssociatedTokenAccount(
+        bytes32 _tokenMint,
+        bytes32 userPubKey,
+        uint8 nonce
+    ) private view returns(bytes32) {
+        return CALL_SOLANA.getResourceAddress(sha256(abi.encodePacked(
+            userPubKey,
+            LibSPLTokenProgram.TOKEN_PROGRAM_ID,
+            _tokenMint,
+            nonce,
+            LibSPLTokenProgram.ASSOCIATED_TOKEN_PROGRAM_ID
+        )));
     }
 }

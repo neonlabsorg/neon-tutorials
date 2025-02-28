@@ -22,7 +22,7 @@ async function main(testComposabilityContractAddress = null) {
         TOKEN_PROGRAM_ID.toBuffer(),
         Buffer.from(seed)
     )
-    console.log(ethers.encodeBase58(createWithSeedAccount), 'createWithSeedAccount')
+    console.log('\n' + ethers.encodeBase58(createWithSeedAccount), 'createWithSeedAccount')
 
     console.log('\nCalling testComposability.testCreateAccountWithSeed: ')
 

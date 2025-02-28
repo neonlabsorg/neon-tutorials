@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import { LibUtils } from "./LibUtils.sol";
+import { SolanaDataConverterLib } from "./SolanaDataConverterLib.sol";
 
 /// @title LibSystemProgram
 /// @notice Helper library for interactions with Solana's System program
 /// @author maxpolizzo@gmail.com
 library LibSystemProgram {
-    bytes32 public constant SYSTEM_PROGRAM_ID = 0x0000000000000000000000000000000000000000000000000000000000000000;
+    bytes32 public constant SYSTEM_PROGRAM_ID = bytes32(0);
 
     /// @notice Helper function to format a `createAccountWithSeed` instruction
     /// @param payer The payer account which will fund the newly created account
@@ -32,7 +32,7 @@ library LibSystemProgram {
     ) {
         accounts = new bytes32[](3);
         accounts[0] = payer;
-        accounts[1] = sha256(abi.encodePacked(basePubKey, seed, programId)); // Account to be created
+        accounts[1] = getCreateWithSeedAccount(basePubKey, programId, seed); // Account to be created
         accounts[2] = basePubKey;
 
         isSigner = new bool[](3);
@@ -46,9 +46,9 @@ library LibSystemProgram {
         isWritable[2] = false;
 
         // Get values in right-padded little-endian bytes format
-        bytes32 seedLenLE = LibUtils.convertUintToLittleEndianBytes32(seed.length);
-        bytes32 rentExemptBalanceLE = LibUtils.convertUintToLittleEndianBytes32(uint256(rentExemptBalance));
-        bytes32 accountSizeLE = LibUtils.convertUintToLittleEndianBytes32(uint256(accountSize));
+        bytes32 seedLenLE = bytes32(SolanaDataConverterLib.readLittleEndianUnsigned256(seed.length));
+        bytes32 rentExemptBalanceLE = bytes32(SolanaDataConverterLib.readLittleEndianUnsigned256(uint256(rentExemptBalance)));
+        bytes32 accountSizeLE = bytes32(SolanaDataConverterLib.readLittleEndianUnsigned256(uint256(accountSize)));
         data = abi.encodePacked(
             bytes4(0x03000000), // Instruction variant
             basePubKey, // Base public key used for account  creation

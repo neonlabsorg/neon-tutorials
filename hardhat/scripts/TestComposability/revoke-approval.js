@@ -2,7 +2,8 @@ const { ethers, network, run } = require("hardhat")
 const web3 = require("@solana/web3.js")
 const { deployTestComposabilityContract, getSolanaTransactions } = require("./utils")
 const { createApproveInstruction, getAccount} = require("@solana/spl-token")
-const { config } = require("../TestCallSolana/config")
+const callSolana = require("../TestCallSolana/config")
+const config = require("./config");
 
 async function main(testComposabilityContractAddress = null) {
     await run("compile")
@@ -24,7 +25,6 @@ async function main(testComposabilityContractAddress = null) {
     const deployerATAInBytes = await testComposability.getAssociatedTokenAccount(
         tokenMint,
         deployerPublicKeyInBytes,
-        config.ATANonce[network.name].deployer // nonce that was used to create the ATA
     )
     const neonEVMUser = (await ethers.getSigners())[1]
     const neonEVMUserPublicKeyInBytes = await testComposability.getNeonAddress(neonEVMUser)
@@ -40,7 +40,7 @@ async function main(testComposabilityContractAddress = null) {
     solanaTransaction.add(approveIx)
 
     let tx, receipt
-    [tx, receipt] = await config.utils.execute(
+    [tx, receipt] = await callSolana.config.utils.execute(
         solanaTransaction.instructions[0],
         0,
         testComposability,
@@ -57,7 +57,6 @@ async function main(testComposabilityContractAddress = null) {
 
     tx = await testComposability.connect(deployer).testRevokeApproval(
         tokenMint,
-        config.ATANonce[network.name].deployer // nonce that was used to create the ATA
     )
 
     console.log('\nNeonEVM transaction hash: ' + tx.hash)

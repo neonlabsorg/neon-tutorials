@@ -42,7 +42,7 @@ async function main(testComposabilityContractAddress = null) {
     console.log("\n")
 
     const tokenMint = await testComposability.tokenMint()
-    console.log(ethers.encodeBase58(tokenMint), '<-- updated token mint\n')
+    console.log(ethers.encodeBase58(tokenMint), '<-- token mint to update\n')
     const info = await getMint(solanaConnection, new web3.PublicKey(ethers.encodeBase58(tokenMint)))
     console.log(info, '<-- updated token mint info')
 

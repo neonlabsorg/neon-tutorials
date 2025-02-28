@@ -21,7 +21,6 @@ async function main(testComposabilityContractAddress = null) {
     const deployerATA = await testComposability.getAssociatedTokenAccount(
         tokenMint,
         deployerPublicKeyInBytes,
-        config.ATANonce[network.name].deployer // nonce
     )
 
     console.log('\nCalling testComposability.testMintTokens: ')

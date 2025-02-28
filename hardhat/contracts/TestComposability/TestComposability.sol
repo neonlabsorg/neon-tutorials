@@ -21,15 +21,17 @@ contract TestComposability is TestCallSolana {
 
     function getAssociatedTokenAccount(
         bytes32 _tokenMint,
-        bytes32 userPubKey,
-        uint8 nonce
+        bytes32 userPubKey
     ) public view returns(bytes32) {
+        // Returns ATA derived with nonce == 0 by default
+        return LibSPLTokenProgram.getAssociatedTokenAccount(_tokenMint, userPubKey);
+    }
+
+    function getTokenMintAccount(bytes memory seed) public view returns(bytes32) {
+        // Returns the token mint account derived from from msg.sender and seed
         return CALL_SOLANA.getResourceAddress(sha256(abi.encodePacked(
-            userPubKey,
-            LibSPLTokenProgram.TOKEN_PROGRAM_ID,
-            _tokenMint,
-            nonce,
-            LibSPLTokenProgram.ASSOCIATED_TOKEN_PROGRAM_ID
+            msg.sender, // msg.sender is included here for authentication
+            seed // Seed that has been used to create token mint
         )));
     }
 
@@ -68,11 +70,14 @@ contract TestComposability is TestCallSolana {
     }
 
     function testCreateInitializeTokenMint(bytes memory seed, uint8 decimals) external {
-        // Create SPL token mint account
+        // Create SPL token mint account: msg.sender and a seed are used to calculate the salt used to derive the token
+        // mint account, allowing for future authentication when interacting with this token mint. Note that it is
+        // entirely possible to calculate the salt in a different manner and to use a different approach for
+        // authentication
         tokenMint = CALL_SOLANA.createResource(
             sha256(abi.encodePacked(
                 msg.sender, // msg.sender is included here for future authentication
-                seed
+                seed // using different seeds allows msg.sender to create different token mint accounts
             )), // salt
             LibSPLTokenProgram.MINT_SIZE, // space
             LibSPLTokenProgram.MINT_RENT_EXEMPT_BALANCE, // lamports
@@ -106,7 +111,7 @@ contract TestComposability is TestCallSolana {
         CALL_SOLANA.execute(0, initializeMint2Ix);
     }
 
-    function testCreateInitializeATA(bytes32 _tokenMint, bytes32 owner, bytes32 tokenOwner, uint8 nonce) external {
+    function testCreateInitializeATA(bytes32 _tokenMint, bytes32 owner, bytes32 tokenOwner) external {
         /// @dev If the ATA is to be used by `msg.sender` to send tokens through this contract the `owner` field should
         /// be left empty.
         /// @dev If the ATA is to be used by a third party `user` NeonEVM account to send tokens through this contract
@@ -124,13 +129,14 @@ contract TestComposability is TestCallSolana {
             // If tokenOwner is empty, token owner is this contract
             tokenOwner = CALL_SOLANA.getNeonAddress(address(this));
         }
-        // Create SPL associated token account
+        // Create SPL associated token account: the owner account is used to derive the ATA, allowing for future
+        // authentication when interacting with this ATA
         ata = CALL_SOLANA.createResource(
             sha256(abi.encodePacked(
                 owner,
                 LibSPLTokenProgram.TOKEN_PROGRAM_ID,
                 _tokenMint,
-                nonce, // nonce can be incremented te create different ATAs
+                uint8(0), // Here we use nonce == 0 by default, however nonce can be incremented te create different ATAs for the same owner
                 LibSPLTokenProgram.ASSOCIATED_TOKEN_PROGRAM_ID
             )), // salt
             LibSPLTokenProgram.ATA_SIZE, // space
@@ -164,13 +170,10 @@ contract TestComposability is TestCallSolana {
         bytes32 recipientATA,
         uint64 amount
     ) external {
+        // Authentication: we derive the token mint account from msg.sender and seed
+        bytes32 _tokenMint = getTokenMintAccount(seed);
         // This contract is mint/freeze authority
         bytes32 mintAuthority = CALL_SOLANA.getNeonAddress(address(this));
-        // Authentication: we derive token mint account from msg.sender and seed
-        bytes32 _tokenMint = CALL_SOLANA.getResourceAddress(sha256(abi.encodePacked(
-            msg.sender, // msg.sender is included here for authentication
-            seed // Seed that has been used to create token mint
-        )));
         // Format mintTo instruction
         (   bytes32[] memory accounts,
             bool[] memory isSigner,
@@ -196,21 +199,13 @@ contract TestComposability is TestCallSolana {
 
     function testTransferTokens(
         bytes32 _tokenMint,
-        uint8 senderATANonce,
         bytes32 recipientATA,
         uint64 amount
     ) external {
-        // Sender's Solana account is derived from msg.sender
-        bytes32 sender = CALL_SOLANA.getNeonAddress(msg.sender);
-        // Authentication: we derive the sender's associated token account from the sender account, the token mint
-        // account and the nonce that was used to create the sender's associated token account through this contract
-        bytes32 senderATA = CALL_SOLANA.getResourceAddress(sha256(abi.encodePacked(
-            sender,
-            LibSPLTokenProgram.TOKEN_PROGRAM_ID,
-            _tokenMint,
-            senderATANonce,
-            LibSPLTokenProgram.ASSOCIATED_TOKEN_PROGRAM_ID
-        )));
+        // Authentication: sender's Solana account is derived from msg.sender
+        bytes32 senderPubKey = CALL_SOLANA.getNeonAddress(msg.sender);
+        // Authentication: we derive the sender's associated token account from the sender account and the token mint account
+        bytes32 senderATA = getAssociatedTokenAccount(_tokenMint, senderPubKey);
         // This contract owns the sender's associated token account
         bytes32 thisContract = CALL_SOLANA.getNeonAddress(address(this));
         // Format transfer instruction
@@ -240,13 +235,10 @@ contract TestComposability is TestCallSolana {
         bytes memory seed,
         bytes32 newAuthority
     ) external {
+        // Authentication: we derive the token mint account from msg.sender and seed
+        bytes32 _tokenMint = getTokenMintAccount(seed);
         // This contract is the current mint authority
         bytes32 currentAuthority = CALL_SOLANA.getNeonAddress(address(this));
-        // Authentication: we derive token mint account from msg.sender and seed
-        bytes32 _tokenMint = CALL_SOLANA.getResourceAddress(sha256(abi.encodePacked(
-            msg.sender, // msg.sender is included here for authentication
-            seed // Seed that has been used to create token mint
-        )));
         // Format createSetAuthority instruction
         (   bytes32[] memory accounts,
             bool[] memory isSigner,
@@ -269,21 +261,11 @@ contract TestComposability is TestCallSolana {
         CALL_SOLANA.execute(0, createSetAuthorityIx);
     }
 
-    function testRevokeApproval(
-        bytes32 _tokenMint,
-        uint8 ataNonce
-    ) external {
-        // User's Solana account is derived from msg.sender
-        bytes32 user = CALL_SOLANA.getNeonAddress(msg.sender);
-        // Authentication: we derive the user's associated token account from the user account, the token mint account
-        // and the nonce that was used to create the user's ATA through this contract
-        bytes32 userATA = CALL_SOLANA.getResourceAddress(sha256(abi.encodePacked(
-            user,
-            LibSPLTokenProgram.TOKEN_PROGRAM_ID,
-            _tokenMint,
-            ataNonce,
-            LibSPLTokenProgram.ASSOCIATED_TOKEN_PROGRAM_ID
-        )));
+    function testRevokeApproval(bytes32 _tokenMint) external {
+        // Authentication: user's Solana account is derived from msg.sender
+        bytes32 userPubKey = CALL_SOLANA.getNeonAddress(msg.sender);
+        // Authentication: we derive the user's associated token account from the user account and the token mint account
+        bytes32 userATA = getAssociatedTokenAccount(_tokenMint, userPubKey);
         // This contract owns the user's associated token account
         bytes32 thisContract = CALL_SOLANA.getNeonAddress(address(this));
         // Format revoke instruction
