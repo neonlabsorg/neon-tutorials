@@ -72,6 +72,14 @@ async function main() {
   );
   console.log("Minimum balance:", minBalance);
 
+  // Calculate PDA of an external authority that is needed as an additional signer for the Solana instruction
+  const salt =
+    "0x00000000000000000000000000000000000000000000000000000000000004d2";
+  const externalAuthority = ethers.encodeBase58(
+    await TestCallSolana.getExtAuthority(salt)
+  );
+  console.log(externalAuthority, "extAuthority");
+
   //*************************** LOCK LIQUIDITY *********************************//
 
   const poolId = new web3.PublicKey(
@@ -105,25 +113,20 @@ async function main() {
     authProgram: DEV_LOCK_CPMM_AUTH, // devnet
     poolKeys, // devnet
     poolInfo,
-    ownerInfo: {
-      feePayer: new web3.PublicKey(payer),
-      wallet: new web3.PublicKey(payer),
-    },
     feePayer: new web3.PublicKey(payer),
     lpAmount: lpBalance.amount,
     withMetadata: true,
     txVersion,
+    getEphemeralSigners: async (k) => {
+      return new Array(k).fill(new web3.PublicKey(externalAuthority)); // Use the provided signer
+    },
   });
 
+  console.log(
+    "Instruction builder:",
+    instructionBuilderForLockingLiquidity.builder
+  );
   console.log("Extra info:", instructionBuilderForLockingLiquidity.extInfo);
-
-  //instructionBuilderForLockingLiquidity.builder.instructions[0].keys[2].isWritable = true;
-
-  instructionBuilderForLockingLiquidity.builder.instructions[0].keys[3].isSigner = true;
-  instructionBuilderForLockingLiquidity.builder.instructions[0].keys[3].isWritable = true;
-
-  /*instructionBuilderForLockingLiquidity.builder.instructions[0].keys[4].isSigner = true;
-  instructionBuilderForLockingLiquidity.builder.instructions[0].keys[4].isWritable = true;*/
 
   console.log(
     instructionBuilderForLockingLiquidity.builder.instructions[0],
@@ -138,9 +141,9 @@ async function main() {
 
   [tx, receipt] = await config.utils.execute(
     solanaTx.instructions[0],
-    0,
+    2000000000,
     TestCallSolana,
-    undefined,
+    salt,
     user
   );
   console.log(tx, "tx");

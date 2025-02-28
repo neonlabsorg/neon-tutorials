@@ -12,16 +12,12 @@ const bs58 = require("bs58");
 require("dotenv").config();
 const web3 = require("@solana/web3.js");
 
-/*const owner = Keypair.fromSecretKey(
-  bs58.decode(process.env.SOLANA_PRIVATE_KEY)
-);*/
-
 /*const owner = new web3.PublicKey(
   "H3Y9Mv8qWVgbSfxejL9UJ5SVcw9svXGuSu3qiYerb8R5"
 );*/
 
 const owner = new web3.PublicKey(
-  "FpPQkYTwEP6fJZrpT1izRQ8Zww9oR23Q2HM9UNkT4bTm"
+  "FpPQkYTwEP6fJZrpT1izRQ8Zww9oR23Q2HM9UNkT4bTm" // Payer account of the smart contract
 );
 
 /*const connection = new Connection(
