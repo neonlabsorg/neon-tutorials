@@ -134,10 +134,6 @@ contract TokenFactory is ReentrancyGuard, Ownable {
             normalizedContribution
         );
         
-        // Ensure amount doesn't exceed uint256 max
-        if (amount > type(uint256).max) {
-            amount = type(uint256).max;
-        }
         
         uint256 availableSupply = FUNDING_SUPPLY - token.totalSupply();
         require(amount <= availableSupply, "Token supply not enough");
