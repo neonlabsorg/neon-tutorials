@@ -4,11 +4,15 @@ const NEON_EXPLORER_URL = "https://devnet.neonscan.org/tx/";
 const MORASWAP_FACTORY_ADDRESS = "0x696d73D7262223724d60B2ce9d6e20fc31DfC56B";
 const MORASWAP_ROUTER_ADDRESS = "0x491FFC6eE42FEfB4Edab9BA7D5F3e639959E081B";
 const WSOL_TOKEN_ADDRESS = "0xc7Fc9b46e479c5Cb42f6C458D1881e55E6B7986c";
-const BONDING_CURVE_A = 16319324419n;
-const BONDING_CURVE_B = 1000000000n;
+// Adjusted bonding curve parameters
+const BONDING_CURVE_A = 10000000000000n; // Increase A to reduce initial token amount
+const BONDING_CURVE_B = 1000000n; // Increase B for steeper price curve
 const FEE_PERCENT = 100; // 1%
-const FUNDING_GOAL_MULTIPLIER = 1n; // 0.1 WSOL (1 * 10^(decimals-1))
-const REQUIRED_WSOL_MULTIPLIER = 2n; // 0.2 WSOL (2 * 10^(decimals-1))
+const TOKEN_DECIMALS = 9;
+
+// Funding goal: 0.1 SOL
+const FUNDING_GOAL_MULTIPLIER = 100000000n; // 0.1 SOL (0.1 * 10^9)
+const REQUIRED_WSOL_MULTIPLIER = 200000000n; // 0.2 SOL (0.2 * 10^9)
 const FEE_BUFFER_PERCENT = 110n; // 10% buffer
 const TOKEN_NAME = "Neon Meme Token";
 const TOKEN_SYMBOL = "NMEME";
@@ -33,11 +37,11 @@ async function logTransaction(tx, description) {
 async function main() {
     console.log("Deploying MemecoinLaunchpad contracts...");
 
-    console.log("Deploying Token implementation...");
-    const Token = await ethers.deployContract("Token");
-    await Token.waitForDeployment();
-    const tokenAddress = await Token.getAddress();
-    console.log(`Token implementation deployed to ${tokenAddress}`);
+    console.log("Deploying ERC20ForSplMintable implementation...");
+    const TokenImpl = await ethers.deployContract("contracts/MemecoinLaunchpad/ERC20ForSplMintable.sol:ERC20ForSplMintable");
+    await TokenImpl.waitForDeployment();
+    const tokenAddress = await TokenImpl.getAddress();
+    console.log(`ERC20ForSplMintable implementation deployed to ${tokenAddress}`);
 
     console.log("Deploying BondingCurve...");
     const BondingCurve = await ethers.deployContract("BondingCurve", [BONDING_CURVE_A, BONDING_CURVE_B]);
@@ -53,7 +57,7 @@ async function main() {
     const wsolDecimals = await wsolMetadata.decimals();
     console.log(`WSOL decimals: ${wsolDecimals}`);
     
-    const fundingGoal = FUNDING_GOAL_MULTIPLIER * 10n ** BigInt(Number(wsolDecimals) - 1);
+    const fundingGoal = FUNDING_GOAL_MULTIPLIER;
     console.log(`Funding goal: 0.1 WSOL (${fundingGoal} in raw units)`);
     
     // Deploy TokenFactory
@@ -83,7 +87,6 @@ async function main() {
     const createTx = await TokenFactory.createToken(TOKEN_NAME, TOKEN_SYMBOL);
     const createReceipt = await logTransaction(createTx, "Token creation transaction");
     
-    // Get the token address using ethers v6 filters
     const tokenCreatedEvents = await TokenFactory.queryFilter(
         TokenFactory.filters.TokenCreated(),
         createReceipt.blockNumber,
@@ -97,37 +100,85 @@ async function main() {
     const newTokenAddress = tokenCreatedEvents[0].args.token;
     console.log(`Token created at: ${newTokenAddress}`);
     
-    const tokenContract = await ethers.getContractAt("Token", newTokenAddress);
+    const tokenContract = await ethers.getContractAt("contracts/MemecoinLaunchpad/ERC20ForSplMintable.sol:ERC20ForSplMintable", newTokenAddress);
     console.log(`Token name: ${await tokenContract.name()}`);
     console.log(`Token symbol: ${await tokenContract.symbol()}`);
     
     // 2. Buy tokens
     console.log("\n2. Buying tokens...");
-    const buyAmount1 = FUNDING_GOAL_MULTIPLIER * 10n ** BigInt(Number(wsolDecimals) - 1);
+    const buyAmount1 = FUNDING_GOAL_MULTIPLIER;
     console.log(`Buying with 0.1 WSOL (${ethers.formatUnits(buyAmount1, wsolDecimals)} WSOL)...`);
-    
-    // Approve and buy tokens
+
+    // Add WSOL approval before buying
+    console.log("Approving WSOL for TokenFactory...");
     await logTransaction(
         await wsolToken.approve(tokenFactoryAddress, buyAmount1),
         "WSOL approval transaction"
     );
-    console.log("WSOL approved for TokenFactory");
+
+    // Add debug logs for bonding curve calculation
+    console.log("\nChecking bonding curve calculation...");
+    try {
+        const bondingCurve = await ethers.getContractAt("BondingCurve", bondingCurveAddress);
+        const totalSupply = await tokenContract.totalSupply();
+        console.log(`Current total supply: ${totalSupply}`);
+        
+        // Calculate expected tokens from bonding curve
+        const expectedTokens = await bondingCurve.getAmountOut(totalSupply, buyAmount1);
+        console.log(`Expected tokens from bonding curve: ${expectedTokens}`);
+        
+        // Check if within funding supply limit
+        const fundingSupply = await TokenFactory.FUNDING_SUPPLY();
+        console.log(`Funding supply limit: ${fundingSupply}`);
+        console.log(`Available supply: ${fundingSupply - totalSupply}`);
+        
+        // Execute the buy transaction directly
+        console.log("\nExecuting buy transaction...");
+        const tx = await TokenFactory.buy(newTokenAddress, buyAmount1);
+        console.log("Buy transaction sent, waiting for confirmation...");
+        const receipt = await logTransaction(tx, "Buy transaction");
+        console.log("Buy transaction confirmed!");
+
+        // Add delay after transaction confirmation
+        console.log("Waiting for state to settle...");
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        
+        // Check token state after buy
+        console.log("\nChecking token state after buy:");
+        const tokenState = await TokenFactory.tokens(newTokenAddress);
+        console.log(`Token state: ${tokenState}`);
+        const collateral = await TokenFactory.collateral(newTokenAddress);
+        console.log(`Collateral: ${ethers.formatUnits(collateral, wsolDecimals)} WSOL`);
+        
+        // Check balances
+        const userBalance = await tokenContract.balanceOf(deployer.address);
+        console.log(`User token balance: ${ethers.formatUnits(userBalance, TOKEN_DECIMALS)}`);
+        const userWsolBalance = await wsolToken.balanceOf(deployer.address);
+        console.log(`User WSOL balance: ${ethers.formatUnits(userWsolBalance, wsolDecimals)} WSOL`);
+        
+    } catch (e) {
+        console.error("\nDetailed error information:");
+        console.error("Error message:", e.message);
+        if (e.error) {
+            console.error("Error details:", e.error);
+            console.error("Error data:", e.error.data);
+        }
+        if (e.receipt) {
+            console.error("Transaction receipt:", {
+                status: e.receipt.status,
+                logs: e.receipt.logs
+            });
+        }
+        throw e;
+    }
     
-    const balanceBefore = await tokenContract.balanceOf(deployer.address);
-    console.log(`Balance before: ${ethers.formatEther(balanceBefore)} ${TOKEN_SYMBOL}`);
-    
-    await logTransaction(
-        await TokenFactory.buy(newTokenAddress, buyAmount1),
-        "Buy transaction"
-    );
-    
-    const balanceAfter1 = await tokenContract.balanceOf(deployer.address);
-    console.log(`Balance after: ${ethers.formatEther(balanceAfter1)} ${TOKEN_SYMBOL}`);
-    console.log(`Tokens received: ${ethers.formatEther(balanceAfter1 - balanceBefore)} ${TOKEN_SYMBOL}`);
+    // Check post-buy state
+    const totalSupplyAfter = await tokenContract.totalSupply();
+    console.log(`Total supply after buy: ${ethers.formatUnits(totalSupplyAfter, TOKEN_DECIMALS)}`);
     
     // 3. Sell some tokens
     console.log("\n3. Selling tokens...");
-    const sellAmount = balanceAfter1 / SELL_PERCENTAGE;
+    const sellAmount = totalSupplyAfter / SELL_PERCENTAGE;
     console.log(`Selling ${ethers.formatEther(sellAmount)} ${TOKEN_SYMBOL}...`);
     
     // Approve and sell tokens
