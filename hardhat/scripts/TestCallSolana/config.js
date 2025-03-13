@@ -40,7 +40,7 @@ const config = {
         USDT: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
         WBTC: "3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh",
         RAY: "4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R",
-        TNEON6: "8eQzr4epQNbyy63jTag3wQRWWD3BnwRRzP1QuTzbhzvY", // DEVNET
+        TNEON9: "8eikDz4h4sgtZkHjkhymipR5xgfxne2HmCJYgwSzukYQ",
         NEON_PROGRAM: "NeonVMyRX5GbCrsAHnUwx1nYYoJAtskU1bWUo6JGNyG",
         NEON_PROGRAM_DEVNET: "eeLSJgWzzxrqKv1UxtRVVH8FX3qCQWUs9QuAjJpETGU",
         ORCA_PROGRAM: "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",

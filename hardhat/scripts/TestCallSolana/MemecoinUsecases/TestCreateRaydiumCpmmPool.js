@@ -76,25 +76,25 @@ async function main() {
 
   // Calculate PDA of an external authority that is needed as an additional signer for the Solana instruction
   const salt =
-    "0x0000000000000000000000000000000000000000000000000000000000003039";
+    "0x000000000000000000000000000000000000000000000000000000000000014d";
   const externalAuthority = ethers.encodeBase58(
     await TestCallSolana.getExtAuthority(salt)
   );
   console.log(externalAuthority, "extAuthority");
 
-  const ataContractTNEON6 = await getAssociatedTokenAddress(
-    new web3.PublicKey(config.DATA.SVM.ADDRESSES.TNEON6),
+  const ataContractTNEON9 = await getAssociatedTokenAddress(
+    new web3.PublicKey(config.DATA.SVM.ADDRESSES.TNEON9),
     new web3.PublicKey(payer),
     true
   );
   try {
-    await getAccount(connection, ataContractTNEON6);
+    await getAccount(connection, ataContractTNEON9);
   } catch (err) {
     return console.error(
       "Account " +
         payer +
         " does not have initialized ATA account for TokenA ( " +
-        config.DATA.SVM.ADDRESSES.TNEON6 +
+        config.DATA.SVM.ADDRESSES.TNEON9 +
         " )."
     );
   }
@@ -117,12 +117,12 @@ async function main() {
   }
 
   console.log(ataContractWSOL, "ataContractWSOL");
-  console.log(ataContractTNEON6, "ataContractTNEON6");
+  console.log(ataContractTNEON9, "ataContractTNEON9");
 
   //*************************** CREATE CPMM POOL *********************************//
 
   const mintA = await raydium.token.getTokenInfo(
-    config.DATA.SVM.ADDRESSES.TNEON6
+    config.DATA.SVM.ADDRESSES.TNEON9
   );
   const mintB = await raydium.token.getTokenInfo(
     config.DATA.SVM.ADDRESSES.WSOL
@@ -144,7 +144,7 @@ async function main() {
     poolFeeAccount: DEVNET_PROGRAM_ID.CREATE_CPMM_POOL_FEE_ACC, // devnet: DEVNET_PROGRAM_ID.CREATE_CPMM_POOL_FEE_ACC
     mintA,
     mintB,
-    mintAAmount: new BN(4000000),
+    mintAAmount: new BN(4000000000),
     mintBAmount: new BN(1000000),
     startTime: new BN(0),
     feeConfig: feeConfigs[0],
@@ -190,7 +190,7 @@ async function main() {
   console.log("\nProcessing batchExecute method with all instructions ...");
   [tx, receipt] = await config.utils.batchExecute(
     solanaTx.instructions,
-    [2000000000, 0, 4000000000],
+    [50000000, 0, 1050000000],
     TestCallSolana,
     undefined,
     user
