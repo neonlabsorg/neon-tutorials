@@ -1,6 +1,6 @@
 const { ethers, run } = require("hardhat");
 
-const NEON_EXPLORER_URL = "https://devnet.neonscan.org/tx/";
+const BLOCKSCOUT_EXPLORER_URL = "https://neon-devnet.blockscout.com/tx/";
 const MORASWAP_FACTORY_ADDRESS = "0x696d73D7262223724d60B2ce9d6e20fc31DfC56B";
 const MORASWAP_ROUTER_ADDRESS = "0x491FFC6eE42FEfB4Edab9BA7D5F3e639959E081B";
 const WSOL_TOKEN_ADDRESS = "0xc7Fc9b46e479c5Cb42f6C458D1881e55E6B7986c";
@@ -30,12 +30,15 @@ const TokenState = {
 // returns the transaction receipt
 async function logTransaction(tx, description) {
     const receipt = await tx.wait();
-    console.log(`${description}: ${NEON_EXPLORER_URL}${tx.hash}`);
+    console.log(`${description}: ${BLOCKSCOUT_EXPLORER_URL}${tx.hash}`);
     return receipt;
 }
 
-// Helper function to verify contract
-async function verifyContract(address, constructorArguments = []) {
+// Helper function to verify contract with delay
+async function verifyContractWithDelay(address, constructorArguments = [], delayInSeconds = 30) {
+    console.log(`Waiting ${delayInSeconds} seconds before verification to ensure contract is indexed...`);
+    await new Promise(resolve => setTimeout(resolve, delayInSeconds * 1000));
+    
     console.log(`Verifying contract at ${address}...`);
     try {
         await run("verify:verify", {
@@ -43,9 +46,15 @@ async function verifyContract(address, constructorArguments = []) {
             constructorArguments: constructorArguments,
             network: "neonevm"
         });
-        console.log(`Contract verified successfully: https://devnet.neonscan.org/address/${address}`);
+        console.log(`Contract verified successfully: https://neon-devnet.blockscout.com/address/${address}`);
     } catch (error) {
         console.error(`Verification failed:`, error.message);
+        
+        // If verification fails, try again with a longer delay
+        if (error.message.includes("not a smart contract") && delayInSeconds < 60) {
+            console.log("Contract may not be indexed yet. Trying again with a longer delay...");
+            await verifyContractWithDelay(address, constructorArguments, delayInSeconds + 30);
+        }
     }
 }
 
@@ -59,7 +68,7 @@ async function main() {
     console.log(`ERC20ForSplMintable implementation deployed to ${tokenAddress}`);
     
     // Verify ERC20ForSplMintable implementation
-    await verifyContract(tokenAddress);
+    await verifyContractWithDelay(tokenAddress);
 
     console.log("Deploying BondingCurve...");
     const BondingCurve = await ethers.deployContract("BondingCurve", [BONDING_CURVE_A, BONDING_CURVE_B]);
@@ -68,7 +77,7 @@ async function main() {
     console.log(`BondingCurve deployed to ${bondingCurveAddress}`);
     
     // Verify BondingCurve
-    await verifyContract(bondingCurveAddress, [BONDING_CURVE_A, BONDING_CURVE_B]);
+    await verifyContractWithDelay(bondingCurveAddress, [BONDING_CURVE_A, BONDING_CURVE_B]);
 
     console.log("Using existing Moraswap contracts on neondevnet...");
     console.log(`WSOL token address: ${WSOL_TOKEN_ADDRESS}`);
@@ -96,7 +105,7 @@ async function main() {
     console.log(`TokenFactory deployed to ${tokenFactoryAddress}`);
     
     // Verify TokenFactory
-    await verifyContract(tokenFactoryAddress, [
+    await verifyContractWithDelay(tokenFactoryAddress, [
         tokenAddress,
         MORASWAP_ROUTER_ADDRESS,
         MORASWAP_FACTORY_ADDRESS,
@@ -157,14 +166,18 @@ async function main() {
     
     // Only try to verify if it's not a standard EIP-1167 proxy
     if (!isEIP1167Proxy) {
-        await verifyContract(newTokenAddress);
+        await verifyContractWithDelay(newTokenAddress);
     } else {
         console.log(`
 Note: The token contract at ${newTokenAddress} is a minimal proxy (EIP-1167) and cannot be verified directly.
 This is expected behavior. The implementation contract at ${tokenAddress} has been verified.
 
+Blockscout may have better support for proxy contracts than NeonScan. You can try to:
+1. Visit the contract on Blockscout: https://neon-devnet.blockscout.com/address/${newTokenAddress}
+2. Look for a "Read as Proxy" or similar option
+3. Provide the implementation address: ${tokenAddress}
+
 To interact with this contract, you can use the ABI of the implementation contract.
-You can view the contract on NeonScan: https://devnet.neonscan.org/address/${newTokenAddress}
         `);
     }
     

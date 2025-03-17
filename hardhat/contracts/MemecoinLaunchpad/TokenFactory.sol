@@ -144,16 +144,10 @@ contract TokenFactory is ReentrancyGuard, Ownable {
         )));
         tokenCollateral += contributionWithoutFee;
 
-        // Initialize token accounts if needed
+        // Initialize buyer's account if needed, following original pattern
         bytes32 salt = bytes32(uint256(uint160(msg.sender)));
         bytes32 toSolana = _splToken.findAccount(salt);
         if (_splToken.isSystemAccount(toSolana)) {
-            _splToken.initializeAccount(salt, token.tokenMint());
-        }
-
-        salt = bytes32(uint256(uint160(address(this))));
-        bytes32 factorySolana = _splToken.findAccount(salt);
-        if (_splToken.isSystemAccount(factorySolana)) {
             _splToken.initializeAccount(salt, token.tokenMint());
         }
 
