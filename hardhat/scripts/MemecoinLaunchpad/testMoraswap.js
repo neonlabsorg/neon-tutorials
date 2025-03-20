@@ -1,12 +1,30 @@
 const { ethers, run } = require("hardhat");
+const fs = require("fs");
+const path = require("path");
 
 const BLOCKSCOUT_EXPLORER_URL = "https://neon-devnet.blockscout.com/tx/";
-const MORASWAP_FACTORY_ADDRESS = "0x696d73D7262223724d60B2ce9d6e20fc31DfC56B";
-const MORASWAP_ROUTER_ADDRESS = "0x491FFC6eE42FEfB4Edab9BA7D5F3e639959E081B";
-const WSOL_TOKEN_ADDRESS = "0xc7Fc9b46e479c5Cb42f6C458D1881e55E6B7986c";
-const ERC20_FOR_SPL_FACTORY_ADDRESS = "0xF6b17787154C418d5773Ea22Afc87A95CAA3e957";
-const TOKEN_FACTORY_ADDRESS = "0xdB7026D87cdCbafF72744BaC848244818E7aCc8d"; // TODO: remove when deploying contracts
-const BONDING_CURVE_ADDRESS = "0x2c11A1F954DC0F782af44b2B78DAf7238d51BaAB"; // TODO: remove when deploying contracts
+
+// Load config
+let config;
+try {
+    const configPath = path.join(__dirname, "config.json");
+    config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+    console.log("Loaded config file successfully");
+} catch (error) {
+    console.error("Failed to load config file:", error.message);
+    console.log("Please run deploy.js first to generate the config file");
+    process.exit(1);
+}
+
+const {
+    MORASWAP_FACTORY_ADDRESS,
+    MORASWAP_ROUTER_ADDRESS,
+    WSOL_TOKEN_ADDRESS,
+    ERC20_FOR_SPL_FACTORY_ADDRESS,
+    TOKEN_FACTORY_ADDRESS,
+    BONDING_CURVE_ADDRESS,
+    FEE_PERCENT
+} = config;
 
 // Funding goal: 0.1 SOL
 const FUNDING_GOAL_MULTIPLIER = 100000000n; // 0.1 SOL (0.1 * 10^9)
@@ -34,10 +52,12 @@ async function logTransaction(tx, description) {
 async function main() {
     console.log("Testing MemecoinLaunchpad contracts...");
 
-    console.log(`Using existing contracts on neondevnet:`);
+    console.log(`Using contracts from config:`);
     console.log(`- TokenFactory: ${TOKEN_FACTORY_ADDRESS}`);
     console.log(`- ERC20ForSplFactory: ${ERC20_FOR_SPL_FACTORY_ADDRESS}`);
     console.log(`- WSOL token: ${WSOL_TOKEN_ADDRESS}`);
+    console.log(`- BondingCurve: ${BONDING_CURVE_ADDRESS}`);
+    console.log(`- Fee Percent: ${FEE_PERCENT} basis points`);
     
     const wsolToken = await ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", WSOL_TOKEN_ADDRESS);
     const wsolMetadata = await ethers.getContractAt("@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol:IERC20Metadata", WSOL_TOKEN_ADDRESS);
@@ -100,7 +120,7 @@ async function main() {
     
     // 3. Sell some tokens
     console.log("\n3. Selling tokens...");
-    const sellAmount = totalSupplyAfterFirstBuy / SELL_PERCENTAGE;
+    const sellAmount = totalSupplyAfterFirstBuy * BigInt(100) / SELL_PERCENTAGE; // Fix calculation
     console.log(`Selling ${ethers.formatUnits(sellAmount, TOKEN_DECIMALS)} ${TOKEN_SYMBOL}...`);
     
     // Approve and sell tokens
