@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -15,6 +14,10 @@ import {IUniswapV2Router01} from "./interfaces/IUniswapV2Router01.sol";
 import {SPLToken} from "./SPLToken.sol";
 
 SPLToken constant _splToken = SPLToken(0xFf00000000000000000000000000000000000004);
+
+interface IERC20ForSplFactory {
+    function createErc20ForSplMintable(string memory _name, string memory _symbol, uint8 _decimals, address _mint_authority) external returns (address erc20spl);
+}
 
 contract TokenFactory is ReentrancyGuard, Ownable {
     using SafeERC20 for IERC20;
@@ -39,7 +42,7 @@ contract TokenFactory is ReentrancyGuard, Ownable {
     // State variables
     mapping(address => TokenState) public tokens;
     mapping(address => uint256) public collateral;
-    address public immutable tokenImplementation;
+    address public immutable erc20ForSplFactory;
     address public uniswapV2Router;
     address public uniswapV2Factory;
     address public wsolToken;
@@ -52,14 +55,14 @@ contract TokenFactory is ReentrancyGuard, Ownable {
     event TokenLiqudityAdded(address indexed token, uint256 timestamp);
 
     constructor(
-        address _tokenImplementation,
+        address _erc20ForSplFactory,
         address _uniswapV2Router,
         address _uniswapV2Factory,
         address _bondingCurve,
         address _wsolToken,
         uint256 _feePercent
     ) Ownable(msg.sender) {
-        tokenImplementation = _tokenImplementation;
+        erc20ForSplFactory = _erc20ForSplFactory;
         uniswapV2Router = _uniswapV2Router;
         uniswapV2Factory = _uniswapV2Factory;
         bondingCurve = BondingCurve(_bondingCurve);
@@ -94,12 +97,13 @@ contract TokenFactory is ReentrancyGuard, Ownable {
         string memory name,
         string memory symbol
     ) external returns (address) {
-        // Create a clone of the implementation
-        address tokenAddress = Clones.clone(tokenImplementation);
-        ERC20ForSplMintable token = ERC20ForSplMintable(tokenAddress);
-        
-        // Initialize the token with the TokenFactory as mint authority
-        token.initialize(name, symbol, TOKEN_DECIMALS, address(this));
+        // Create a new token using the factory
+        address tokenAddress = IERC20ForSplFactory(erc20ForSplFactory).createErc20ForSplMintable(
+            name,
+            symbol,
+            TOKEN_DECIMALS,
+            address(this)
+        );
         
         tokens[tokenAddress] = TokenState.FUNDING;
         emit TokenCreated(tokenAddress, block.timestamp);
