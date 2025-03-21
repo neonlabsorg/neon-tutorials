@@ -1,9 +1,9 @@
 const { ethers, run } = require("hardhat");
 const fs = require("fs");
 const path = require("path");
+const { DEVNET_PROGRAM_ID } = require("@raydium-io/raydium-sdk-v2");
 
 const BLOCKSCOUT_EXPLORER_URL = "https://neon-devnet.blockscout.com/tx/";
-const MORASWAP_FACTORY_ADDRESS = "0x696d73D7262223724d60B2ce9d6e20fc31DfC56B";
 const WSOL_TOKEN_ADDRESS = "0xc7Fc9b46e479c5Cb42f6C458D1881e55E6B7986c";
 const ERC20_FOR_SPL_FACTORY_ADDRESS = "0xF6b17787154C418d5773Ea22Afc87A95CAA3e957";
 
@@ -11,6 +11,12 @@ const ERC20_FOR_SPL_FACTORY_ADDRESS = "0xF6b17787154C418d5773Ea22Afc87A95CAA3e95
 const BONDING_CURVE_A = 1e15; // A parameter for bonding curve
 const BONDING_CURVE_B = 2e15; // B parameter for bonding curve
 const FEE_PERCENT = 300; // 3% in basis points
+
+// Raydium constants
+const RAYDIUM_CREATE_CPMM_POOL_PROGRAM = DEVNET_PROGRAM_ID.CREATE_CPMM_POOL_PROGRAM;
+const RAYDIUM_CREATE_CPMM_POOL_FEE_ACC = DEVNET_PROGRAM_ID.CREATE_CPMM_POOL_FEE_ACC;
+const RAYDIUM_DEV_LOCK_CPMM_PROGRAM = "Lo9M9ViYN8yiSc8j2L1G97oy9wMJRbA7cGY7bBeW9xu";
+const RAYDIUM_DEV_LOCK_CPMM_AUTH = "2H85KymKPgHMUvtSJRNXDVQjR5X9DXLg1dqFWBZBmFqh";
 
 // Helper function to log transaction with explorer link
 async function logTransaction(tx, description) {
@@ -44,7 +50,7 @@ async function verifyContractWithDelay(address, constructorArguments) {
 }
 
 async function main() {
-    console.log("Deploying MemecoinLaunchpad contracts...");
+    console.log("Deploying MemecoinLaunchpad contracts with Raydium integration...");
 
     // Get the signer
     const [deployer] = await ethers.getSigners();
@@ -67,8 +73,6 @@ async function main() {
     const TokenFactory = await ethers.getContractFactory("TokenFactory");
     const tokenFactory = await TokenFactory.deploy(
         ERC20_FOR_SPL_FACTORY_ADDRESS,
-        MORASWAP_ROUTER_ADDRESS,
-        MORASWAP_FACTORY_ADDRESS,
         bondingCurveAddress,
         WSOL_TOKEN_ADDRESS,
         FEE_PERCENT
@@ -83,8 +87,6 @@ async function main() {
         tokenFactoryAddress,
         [
             ERC20_FOR_SPL_FACTORY_ADDRESS,
-            MORASWAP_ROUTER_ADDRESS,
-            MORASWAP_FACTORY_ADDRESS,
             bondingCurveAddress,
             WSOL_TOKEN_ADDRESS,
             FEE_PERCENT
@@ -93,12 +95,21 @@ async function main() {
 
     // Create config object
     const config = {
-        MORASWAP_FACTORY_ADDRESS,
         WSOL_TOKEN_ADDRESS,
         ERC20_FOR_SPL_FACTORY_ADDRESS,
         TOKEN_FACTORY_ADDRESS: tokenFactoryAddress,
         BONDING_CURVE_ADDRESS: bondingCurveAddress,
-        FEE_PERCENT
+        FEE_PERCENT,
+        SOLANA_RPC_URL: "https://api.devnet.solana.com",
+        RAYDIUM: {
+            CREATE_CPMM_POOL_PROGRAM: RAYDIUM_CREATE_CPMM_POOL_PROGRAM,
+            CREATE_CPMM_POOL_FEE_ACC: RAYDIUM_CREATE_CPMM_POOL_FEE_ACC,
+            DEV_LOCK_CPMM_PROGRAM: RAYDIUM_DEV_LOCK_CPMM_PROGRAM,
+            DEV_LOCK_CPMM_AUTH: RAYDIUM_DEV_LOCK_CPMM_AUTH
+        },
+        TOKENS: {
+            WSOL_MINT: "So11111111111111111111111111111111111111112"
+        }
     };
 
     // Save config to file

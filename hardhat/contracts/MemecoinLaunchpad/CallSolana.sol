@@ -41,7 +41,7 @@ contract CallSolana {
         uint64[] memory lamports,
         bytes32[] memory salt,
         bytes[] memory instruction
-    ) external {
+    ) public {
         uint len = instruction.length;
         for (uint i = 0; i < len; ++i) {
             _execute(lamports[i], salt[i], instruction[i]);

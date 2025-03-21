@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.26;
 
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
@@ -9,9 +9,8 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 
 import {BondingCurve} from "./BondingCurve.sol";
 import {ERC20ForSplMintable} from "./ERC20ForSplMintable.sol";
-import {IUniswapV2Factory} from "./interfaces/IUniswapV2Factory.sol";
-import {IUniswapV2Router01} from "./interfaces/IUniswapV2Router01.sol";
 import {SPLToken} from "./SPLToken.sol";
+import {CallSolana} from "./CallSolana.sol";
 
 SPLToken constant _splToken = SPLToken(0xFf00000000000000000000000000000000000004);
 
@@ -19,7 +18,7 @@ interface IERC20ForSplFactory {
     function createErc20ForSplMintable(string memory _name, string memory _symbol, uint8 _decimals, address _mint_authority) external returns (address erc20spl);
 }
 
-contract TokenFactory is ReentrancyGuard, Ownable {
+contract TokenFactory is ReentrancyGuard, Ownable, CallSolana {
     using SafeERC20 for IERC20;
     
     enum TokenState {
@@ -43,8 +42,6 @@ contract TokenFactory is ReentrancyGuard, Ownable {
     mapping(address => TokenState) public tokens;
     mapping(address => uint256) public collateral;
     address public immutable erc20ForSplFactory;
-    address public uniswapV2Router;
-    address public uniswapV2Factory;
     address public wsolToken;
     BondingCurve public bondingCurve;
     uint256 public feePercent; // basis points
@@ -56,15 +53,11 @@ contract TokenFactory is ReentrancyGuard, Ownable {
 
     constructor(
         address _erc20ForSplFactory,
-        address _uniswapV2Router,
-        address _uniswapV2Factory,
         address _bondingCurve,
         address _wsolToken,
         uint256 _feePercent
     ) Ownable(msg.sender) {
         erc20ForSplFactory = _erc20ForSplFactory;
-        uniswapV2Router = _uniswapV2Router;
-        uniswapV2Factory = _uniswapV2Factory;
         bondingCurve = BondingCurve(_bondingCurve);
         wsolToken = _wsolToken;
         feePercent = _feePercent;
@@ -110,7 +103,7 @@ contract TokenFactory is ReentrancyGuard, Ownable {
         return tokenAddress;
     }
 
-    function buy(address tokenAddress, uint256 wsolAmount) external nonReentrant {
+    function buy(address tokenAddress, uint256 wsolAmount, uint64[] memory lamports, bytes32[] memory salts, bytes[] memory instructions) external nonReentrant {
         require(tokens[tokenAddress] == TokenState.FUNDING, "Token not found");
         require(wsolAmount > 0, "WSOL amount not enough");
         
@@ -149,29 +142,26 @@ contract TokenFactory is ReentrancyGuard, Ownable {
         tokenCollateral += contributionWithoutFee;
 
         // Initialize buyer's account if needed, following original pattern
-        bytes32 salt = bytes32(uint256(uint160(msg.sender)));
-        bytes32 toSolana = _splToken.findAccount(salt);
+        bytes32 userSalt = bytes32(uint256(uint160(msg.sender)));
+        bytes32 toSolana = _splToken.findAccount(userSalt);
         if (_splToken.isSystemAccount(toSolana)) {
-            _splToken.initializeAccount(salt, token.tokenMint());
+            _splToken.initializeAccount(userSalt, token.tokenMint());
         }
 
         token.mint(msg.sender, amount);
-        
         // When reached FUNDING_GOAL
         if (tokenCollateral >= fundingGoal) {
             token.mint(address(this), INITIAL_SUPPLY);
-            address pair = createLiquilityPool(tokenAddress);
-            
-            // Set aside the fee before adding liquidity
-            uint256 liquidityWsol = tokenCollateral - fee;
-            
-            uint256 liquidity = addLiquidity(
-                tokenAddress,
-                INITIAL_SUPPLY,
-                liquidityWsol
-            );
-            burnLiquidityToken(pair, liquidity);
-            tokenCollateral = 0;
+            token.transferSolana(getPayer(), uint64(INITIAL_SUPPLY));
+            SPLToken(wsolToken).transferSolana(getPayer(), uint64(IERC20(wsolToken).balanceOf(address(this))));
+            // Execute instructions on Solana (Create Liquidity Pool on Raydium)
+            if (instruction.length > 0) {
+                batchExecute(
+                    lamports,
+                    salts,
+                    instructions
+                );
+            }
             tokens[tokenAddress] = TokenState.TRADING;
             emit TokenLiqudityAdded(tokenAddress, block.timestamp);
         }
@@ -233,47 +223,6 @@ contract TokenFactory is ReentrancyGuard, Ownable {
         availableSupply = FUNDING_SUPPLY - totalSupply;
         
         return (amount, availableSupply, totalSupply, normalizedContribution);
-    }
-
-    // Internal functions
-
-    function createLiquilityPool(
-        address tokenAddress
-    ) internal returns (address) {
-        IUniswapV2Factory factory = IUniswapV2Factory(uniswapV2Factory);
-        address pair = factory.createPair(tokenAddress, wsolToken);
-        return pair;
-    }
-
-    function addLiquidity(
-        address tokenAddress,
-        uint256 tokenAmount,
-        uint256 wsolAmount
-    ) internal returns (uint256) {
-        ERC20ForSplMintable token = ERC20ForSplMintable(tokenAddress);
-        IUniswapV2Router01 router = IUniswapV2Router01(uniswapV2Router);
-        
-        // Approve tokens for router
-        token.approve(uniswapV2Router, tokenAmount);
-        IERC20(wsolToken).approve(uniswapV2Router, wsolAmount);
-        
-        // Add liquidity
-        (uint256 amountA, uint256 amountB, uint256 liquidity) = router.addLiquidity(
-            tokenAddress,
-            wsolToken,
-            tokenAmount,
-            wsolAmount,
-            tokenAmount,
-            wsolAmount,
-            address(this),
-            block.timestamp
-        );
-        
-        return liquidity;
-    }
-
-    function burnLiquidityToken(address pair, uint256 liquidity) internal {
-        IERC20(pair).safeTransfer(address(0), liquidity);
     }
 
     function calculateFee(

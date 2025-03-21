@@ -23,6 +23,7 @@ interface SPLToken {
     function initializeAccount(bytes32 seed, bytes32 mint) external returns (bytes32);
     function transfer(bytes32 from, bytes32 to, uint64 amount) external;
     function transferWithSeed(bytes32 seed, bytes32 from, bytes32 to, uint64 amount) external;
+    function transferSolana(bytes32 to, uint64 amount) external;
     function approve(bytes32 from, bytes32 to, uint64 amount) external;
     function revoke(bytes32 from) external;
     function burn(bytes32 mint, bytes32 from, uint64 amount) external;
