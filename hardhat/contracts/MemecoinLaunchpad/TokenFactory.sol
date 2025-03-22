@@ -26,7 +26,15 @@ contract TokenFactory is ReentrancyGuard, Ownable, CallSolana {
         FUNDING,
         TRADING
     }
-    
+
+    struct ComposabilityRequest {
+        uint64[] lamports;
+        bytes32[] salt;
+        bytes[] instruction;
+    }
+
+    event Amounts(uint256 fundingTokenAmount, uint256 memeTokenAmount);
+
     // Token constants
     uint8 public constant TOKEN_DECIMALS = 9;
     uint256 public constant MAX_SUPPLY = 1000000 * (10 ** TOKEN_DECIMALS); // 1 Million tokens with 9 decimals
@@ -103,7 +111,7 @@ contract TokenFactory is ReentrancyGuard, Ownable, CallSolana {
         return tokenAddress;
     }
 
-    function buy(address tokenAddress, uint256 wsolAmount, uint64[] memory lamports, bytes32[] memory salts, bytes[] memory instructions) external nonReentrant {
+    function buy(address tokenAddress, uint256 wsolAmount, ComposabilityRequest calldata composabilityRequest) external nonReentrant {
         require(tokens[tokenAddress] == TokenState.FUNDING, "Token not found");
         require(wsolAmount > 0, "WSOL amount not enough");
         
@@ -151,17 +159,14 @@ contract TokenFactory is ReentrancyGuard, Ownable, CallSolana {
         token.mint(msg.sender, amount);
         // When reached FUNDING_GOAL
         if (tokenCollateral >= fundingGoal) {
+            
             token.mint(address(this), INITIAL_SUPPLY);
-            token.transferSolana(getPayer(), uint64(INITIAL_SUPPLY));
-            SPLToken(wsolToken).transferSolana(getPayer(), uint64(IERC20(wsolToken).balanceOf(address(this))));
-            // Execute instructions on Solana (Create Liquidity Pool on Raydium)
-            if (instruction.length > 0) {
-                batchExecute(
-                    lamports,
-                    salts,
-                    instructions
-                );
-            }
+            bytes32 payer = getPayer();
+            token.transferSolana(payer, uint64(INITIAL_SUPPLY));
+            uint256 fundingTokenLiquidityAmount = IERC20(wsolToken).balanceOf(address(this)) - valueToReturn;
+            // SPLToken(wsolToken).transferSolana(payer, uint64(fundingTokenLiquidityAmount));
+            emit Amounts(fundingTokenLiquidityAmount, INITIAL_SUPPLY);
+            //batchExecute(composabilityRequest.lamports, composabilityRequest.salt, composabilityRequest.instruction);
             tokens[tokenAddress] = TokenState.TRADING;
             emit TokenLiqudityAdded(tokenAddress, block.timestamp);
         }

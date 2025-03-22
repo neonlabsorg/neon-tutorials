@@ -3,8 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const web3 = require("@solana/web3.js");
 const {
-  getAssociatedTokenAddress,
-  getAccount,
+  getAssociatedTokenAddressSync,
   TOKEN_PROGRAM_ID,
   createAssociatedTokenAccountInstruction,
   ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -12,7 +11,6 @@ const {
 const {
   Raydium,
   TxVersion,
-  parseTokenAccountResp,
   DEVNET_PROGRAM_ID,
   getCpmmPdaAmmConfigId,
 } = require("@raydium-io/raydium-sdk-v2");
@@ -83,7 +81,6 @@ const BUY_BUFFER = 120n; // 20% buffer to ensure we reach the goal
 const timestamp = Date.now();
 const TOKEN_NAME = `NeonMeme${timestamp}`;
 const TOKEN_SYMBOL = `NM${timestamp.toString().slice(-4)}`;
-const TOKEN_DECIMALS = 9;
 
 // Enum to match TokenFactory.sol's TokenState enum
 const TokenState = {
@@ -103,8 +100,6 @@ async function logTransaction(tx, description) {
 // Helper function to create ATAs directly via Solana Web3.js
 async function createATAsForPayer(connection, payerBase58, tokenMints) {
     console.log("\nCreating ATAs directly via Solana Web3.js...");
-    
-    // Load keypair from id.json (similar to CreateATAThroughSolanaWeb3.js)
     let keypair;
     try {
         if (process.env.ANCHOR_WALLET === undefined) {
@@ -121,85 +116,90 @@ async function createATAsForPayer(connection, payerBase58, tokenMints) {
         console.error("Error loading keypair:", error);
         throw error;
     }
-    console.log(keypair.publicKey.toString(), "keypair");
+    console.log(keypair.publicKey.toString(), "keypair pubkey");
 
-    // Create payerPublicKey from the payerBase58 string
-    let payerPublicKey;
-    try {
-        payerPublicKey = new web3.PublicKey(payerBase58);
-        console.log(`Target payer public key: ${payerPublicKey.toString()}`);
-    } catch (error) {
-        console.error(`Invalid payer public key: ${payerBase58}. Using keypair public key instead.`);
-        payerPublicKey = keypair.publicKey;
-    }
+    const payerPublicKey = new web3.PublicKey(payerBase58);
+    console.log(`Target payer public key: ${payerPublicKey.toString()}`);
+  
     
-    // Create a new transaction
     const transaction = new web3.Transaction();
     let atasToBeCreated = "";
-    
+
     // Check and create ATAs for each token mint
-    for (let i = 0; i < tokenMints.length; i++) {
-        const mint = tokenMints[i];
-        console.log(`Processing mint: ${mint}`);
-        
-        const associatedToken = await getAssociatedTokenAddress(
-            new web3.PublicKey(mint),
-            payerPublicKey,
-            true,
-            TOKEN_PROGRAM_ID,
-            ASSOCIATED_TOKEN_PROGRAM_ID
+    for (let i = 0, len = tokenMints.length; i < len; ++i) {
+        console.log(`Processing funding token mint: ${tokenMints[i]}`);
+
+        const associatedToken = getAssociatedTokenAddressSync(
+          new web3.PublicKey(tokenMints[i]),
+          payerPublicKey,
+          true,
+          TOKEN_PROGRAM_ID,
+          ASSOCIATED_TOKEN_PROGRAM_ID
         );
-        
-        try {
-            // Check if ATA already exists
-            await getAccount(connection, associatedToken);
-            console.log(`ATA already exists for ${mint}: ${associatedToken.toString()}`);
-        } catch (err) {
-            // ATA doesn't exist, add instruction to create it
-            atasToBeCreated += mint + ", ";
-            console.log(`Adding instruction to create ATA for ${mint}`);
-            
-            transaction.add(
-                createAssociatedTokenAccountInstruction(
-                    keypair.publicKey,
-                    associatedToken,
-                    payerPublicKey,
-                    new web3.PublicKey(mint),
-                    TOKEN_PROGRAM_ID,
-                    ASSOCIATED_TOKEN_PROGRAM_ID
-                )
-            );
-        }
-    }
+        const ataInfo = await connection.getAccountInfo(associatedToken);
+
+        // create ATA only if it's missing
+        if (!ataInfo || !ataInfo.data) {
+          atasToBeCreated += tokenMints[i] + ", ";
     
-    // If we have instructions to add, send the transaction
-    if (transaction.instructions.length > 0) {
-        console.log(`\nCreating ${transaction.instructions.length} ATA accounts for: ${atasToBeCreated.substring(0, atasToBeCreated.length - 2)}`);
-        
-        // Set recent blockhash and fee payer
-        const { blockhash } = await connection.getLatestBlockhash();
-        transaction.recentBlockhash = blockhash;
-        transaction.feePayer = keypair.publicKey;
-        
-        try {
-            // Send transaction to Solana with proper signing
-            console.log("Sending transaction to create ATAs...");
-            const signature = await web3.sendAndConfirmTransaction(
-                connection,
-                transaction,
-                [keypair]
-            );
-            console.log("ATA creation transaction signature:", signature);
-            
-            return true;
-        } catch (error) {
-            console.error("Error creating ATAs:", error);
-            return false;
+          transaction.add(
+            createAssociatedTokenAccountInstruction(
+              keypair.publicKey,
+              associatedToken,
+              payerPublicKey,
+              new web3.PublicKey(tokenMints[i]),
+              TOKEN_PROGRAM_ID,
+              ASSOCIATED_TOKEN_PROGRAM_ID
+            )
+          );
         }
-    } else {
-        console.log("No ATAs need to be created.");
-        return false;
     }
+
+    if (transaction.instructions.length) {
+        console.log(
+          "\nCreating ATA accounts for the following SPLTokens - ",
+          atasToBeCreated.substring(0, atasToBeCreated.length - 2)
+        );
+        const signature = await web3.sendAndConfirmTransaction(
+          connection,
+          transaction,
+          [keypair]
+        );
+    
+        console.log("\nTx signature", signature);
+      } else {
+        return console.error("\nNo instructions included into transaction.");
+    }
+
+    const fundingTokenATA =getAssociatedTokenAddressSync(
+        new web3.PublicKey(tokenMints[0]),
+        payerPublicKey,
+        true,
+        TOKEN_PROGRAM_ID,
+        ASSOCIATED_TOKEN_PROGRAM_ID
+    );
+
+    const fundingTokenATABytes32 = config.utils.publicKeyToBytes32(fundingTokenATA.toString());
+
+    const memeTokenATA = getAssociatedTokenAddressSync(
+        new web3.PublicKey(tokenMints[1]),
+        payerPublicKey,
+        true,
+        TOKEN_PROGRAM_ID,
+        ASSOCIATED_TOKEN_PROGRAM_ID
+    );
+
+    const memeTokenATABytes32 = config.utils.publicKeyToBytes32(memeTokenATA.toString());
+    console.log(memeTokenATA.toString(), "memeTokenATA");
+    console.log(memeTokenATABytes32, "memeTokenATABytes32");
+    console.log(fundingTokenATA.toString(), "fundingTokenATA");
+    console.log(fundingTokenATABytes32, "fundingTokenATABytes32");
+
+    return {
+        fundingTokenATABytes32,
+        memeTokenATABytes32
+    };
+
 }
 
 async function main() {
@@ -290,7 +290,7 @@ async function main() {
     try {
         // Create ATAs for the token mints
         const tokenMints = [wsolTokenMint, newTokenMint];
-        await createATAsForPayer(connection, payerBase58, tokenMints);
+        const { fundingTokenATABytes32, memeTokenATABytes32 } = await createATAsForPayer(connection, payerBase58, tokenMints);
         console.log("ATA creation complete");
         
         // Initialize or re-initialize Raydium with token loading
@@ -343,13 +343,13 @@ async function main() {
         console.log("\nPayer public key:", payerBase58);
         console.log("CREATE_CPMM_POOL_PROGRAM:", DEVNET_PROGRAM_ID.CREATE_CPMM_POOL_PROGRAM);
         console.log("CREATE_CPMM_POOL_FEE_ACC:", DEVNET_PROGRAM_ID.CREATE_CPMM_POOL_FEE_ACC);
-        console.log("mintAAmount:", new BN(4000000000).toString());
-        console.log("mintBAmount:", new BN(1000000).toString());
+        console.log("mintAAmount:", new BN(200000000000000).toString());
+        console.log("mintBAmount:", new BN(100000000).toString());
         console.log("startTime:", new BN(0).toString());
         console.log("associatedOnly:", false);
         console.log("useSOLBalance:", true);
         console.log("txVersion:", txVersion);
-
+        
         // Create pool instructions using Raydium SDK (as in TestCreateRaydiumCpmmPool.js)
         console.log("\nCreating pool instructions using Raydium SDK...");
         const createPoolArgs = {
@@ -357,8 +357,8 @@ async function main() {
             poolFeeAccount: DEVNET_PROGRAM_ID.CREATE_CPMM_POOL_FEE_ACC,
             mintA,
             mintB,
-            mintAAmount: new BN(1),
-            mintBAmount: new BN(1),
+            mintAAmount: new BN(200000000000000), // MEME TOKEN
+            mintBAmount: new BN(103000000), //WSOL
             startTime: new BN(0),
             feeConfig: feeConfigs[0],
             associatedOnly: false,
@@ -457,20 +457,19 @@ async function main() {
 
         // Execute buy with Raydium pool creation
         console.log("\nExecuting buy with Raydium pool creation...");
-    await logTransaction(
-            await TokenFactory.buy(newTokenAddress, buyAmount, lamports, saltValues, instructions),
-            "Buy transaction with Raydium pool creation"
+        await logTransaction(
+            await TokenFactory.buy(newTokenAddress, buyAmount, { lamports: lamports, salt: saltValues, instruction: instructions }),
+            "Buy transaction before Raydium pool creation"
         );
-
         // Check final state
-    const tokenState = await TokenFactory.tokens(newTokenAddress);
-    
-    if (tokenState === TokenState.TRADING) {
-            console.log("Successfully reached funding goal and created Raydium liquidity pool!");
-            console.log("Raydium pool should be created for tokens:");
-            console.log(`- Token A (new token): ${newTokenMint}`);
-            console.log(`- Token B (WSOL): ${wsolTokenMint}`);
-    } else {
+        const tokenState = await TokenFactory.tokens(newTokenAddress);
+        
+        if (tokenState === TokenState.TRADING) {
+                console.log("Successfully reached funding goal and created Raydium liquidity pool!");
+                console.log("Raydium pool should be created for tokens:");
+                console.log(`- Token A (new token): ${newTokenMint}`);
+                console.log(`- Token B (WSOL): ${wsolTokenMint}`);
+        } else {
         console.log("Failed to reach funding goal or create liquidity pool.");
         const collateralAfter = await TokenFactory.collateral(newTokenAddress);
             console.log(`Current collateral: ${ethers.formatUnits(collateralAfter, wsolDecimals)} WSOL`);
