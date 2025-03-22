@@ -4,18 +4,18 @@ require("dotenv").config();
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
   solidity: {
-        compilers:[
-            {
-                version: '0.8.26',
-                settings: {
-                    viaIR: true,
-                    optimizer: {
-                        enabled: true,
-                        runs: 10000,
-                    }
-                }
-            },
-        ],
+    compilers: [
+      {
+        version: "0.8.26",
+        settings: {
+          viaIR: true,
+          optimizer: {
+            enabled: true,
+            runs: 10000,
+          },
+        },
+      },
+    ],
   },
   etherscan: {
     apiKey: {
@@ -26,16 +26,16 @@ module.exports = {
         network: "neonevm",
         chainId: 245022926,
         urls: {
-          apiURL: "https://devnet-api.neonscan.org/hardhat/verify",
-          browserURL: "https://devnet.neonscan.org",
+          apiURL: "https://neon-devnet.blockscout.com/api",
+          browserURL: "https://neon-devnet.blockscout.com",
         },
       },
       {
         network: "neonevm",
         chainId: 245022934,
         urls: {
-          apiURL: "https://api.neonscan.org/hardhat/verify",
-          browserURL: "https://neonscan.org",
+          apiURL: "https://neon.blockscout.com/api",
+          browserURL: "https://neon.blockscout.com",
         },
       },
     ],
