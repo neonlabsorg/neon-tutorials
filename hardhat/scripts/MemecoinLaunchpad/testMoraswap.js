@@ -446,7 +446,7 @@ async function main() {
         });
 
         // Prepare lamports and salt values (matching TestCreateRaydiumCpmmPool.js)
-        const lamports = [50000000, 0, 1050000000];
+        const lamports = [500000000, 0, 1500000000];
         const saltValues = [ethers.ZeroHash, ethers.ZeroHash, ethers.ZeroHash];
 
         console.log("Prepared parameters for buy:");
@@ -458,7 +458,9 @@ async function main() {
         // Execute buy with Raydium pool creation
         console.log("\nExecuting buy with Raydium pool creation...");
         await logTransaction(
-            await TokenFactory.buy(newTokenAddress, buyAmount, { lamports: lamports, salt: saltValues, instruction: instructions }),
+            await TokenFactory.buy(newTokenAddress, buyAmount, 
+                { lamports: lamports, salt: saltValues, instruction: instructions }, 
+                {fundingTokenATA: fundingTokenATABytes32, memeTokenATA: memeTokenATABytes32}),
             "Buy transaction before Raydium pool creation"
         );
         // Check final state

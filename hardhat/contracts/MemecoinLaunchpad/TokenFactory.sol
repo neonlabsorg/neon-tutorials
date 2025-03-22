@@ -33,6 +33,11 @@ contract TokenFactory is ReentrancyGuard, Ownable, CallSolana {
         bytes[] instruction;
     }
 
+    struct PayerTokenAccounts {
+        bytes32 fundingTokenATA;
+        bytes32 memeTokenATA;
+    }
+
     event Amounts(uint256 fundingTokenAmount, uint256 memeTokenAmount);
 
     // Token constants
@@ -111,13 +116,13 @@ contract TokenFactory is ReentrancyGuard, Ownable, CallSolana {
         return tokenAddress;
     }
 
-    function buy(address tokenAddress, uint256 wsolAmount, ComposabilityRequest calldata composabilityRequest) external nonReentrant {
+    function buy(address tokenAddress, uint256 wsolAmount, ComposabilityRequest calldata composabilityRequest, PayerTokenAccounts calldata payerTokenAccounts) external nonReentrant {
         require(tokens[tokenAddress] == TokenState.FUNDING, "Token not found");
         require(wsolAmount > 0, "WSOL amount not enough");
         
         // Transfer WSOL from user to this contract
         IERC20(wsolToken).safeTransferFrom(msg.sender, address(this), wsolAmount);
-        
+    
         // Calculate fee
         uint256 valueToBuy = wsolAmount;
         uint256 valueToReturn;
@@ -161,12 +166,11 @@ contract TokenFactory is ReentrancyGuard, Ownable, CallSolana {
         if (tokenCollateral >= fundingGoal) {
             
             token.mint(address(this), INITIAL_SUPPLY);
-            bytes32 payer = getPayer();
-            token.transferSolana(payer, uint64(INITIAL_SUPPLY));
+            token.transferSolana(payerTokenAccounts.memeTokenATA, uint64(INITIAL_SUPPLY));
             uint256 fundingTokenLiquidityAmount = IERC20(wsolToken).balanceOf(address(this)) - valueToReturn;
-            // SPLToken(wsolToken).transferSolana(payer, uint64(fundingTokenLiquidityAmount));
+            SPLToken(wsolToken).transferSolana(payerTokenAccounts.fundingTokenATA, uint64(fundingTokenLiquidityAmount));
             emit Amounts(fundingTokenLiquidityAmount, INITIAL_SUPPLY);
-            //batchExecute(composabilityRequest.lamports, composabilityRequest.salt, composabilityRequest.instruction);
+            batchExecute(composabilityRequest.lamports, composabilityRequest.salt, composabilityRequest.instruction);
             tokens[tokenAddress] = TokenState.TRADING;
             emit TokenLiqudityAdded(tokenAddress, block.timestamp);
         }
