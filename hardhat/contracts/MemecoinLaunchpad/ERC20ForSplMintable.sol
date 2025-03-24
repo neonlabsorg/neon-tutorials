@@ -32,14 +32,14 @@ contract ERC20ForSplMintable {
     ) external {
         require(!_initialized, "ERC20: already initialized");
         
-        // First initialize mint and get mintAddress (same as original _initialize)
+        // Initialize mint with bytes32(0) as in the original implementation
         bytes32 mintAddress = _splToken.initializeMint(bytes32(0), _decimals);
         _metaplex.createMetadata(mintAddress, _name, _symbol, "");
         
-        // Set tokenMint first (like passing to ERC20ForSpl constructor)
+        // Set tokenMint
         tokenMint = mintAddress;
         
-        // Then set admin (like in original constructor)
+        // Set admin and mark as initialized
         _admin = mint_authority;
         _initialized = true;
     }
