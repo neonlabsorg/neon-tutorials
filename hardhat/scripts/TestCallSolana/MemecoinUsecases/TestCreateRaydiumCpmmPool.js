@@ -34,7 +34,7 @@ async function main() {
     "TestCallSolana"
   );
   let TestCallSolana;
-  let solanaTx;
+  let solanaTxCreatePool, solanaTxLockLP;
   let tx;
   let receipt;
 
@@ -76,25 +76,25 @@ async function main() {
 
   // Calculate PDA of an external authority that is needed as an additional signer for the Solana instruction
   const salt =
-    "0x000000000000000000000000000000000000000000000000000000000000014d";
+    "0x0000000000000000000000000000000000000000000000000000000000000378";
   const externalAuthority = ethers.encodeBase58(
     await TestCallSolana.getExtAuthority(salt)
   );
   console.log(externalAuthority, "extAuthority");
 
-  const ataContractTNEON9 = await getAssociatedTokenAddress(
-    new web3.PublicKey(config.DATA.SVM.ADDRESSES.TNEON9),
+  const ataContractTNEON12 = await getAssociatedTokenAddress(
+    new web3.PublicKey(config.DATA.SVM.ADDRESSES.TNEON12),
     new web3.PublicKey(payer),
     true
   );
   try {
-    await getAccount(connection, ataContractTNEON9);
+    await getAccount(connection, ataContractTNEON12);
   } catch (err) {
     return console.error(
       "Account " +
         payer +
         " does not have initialized ATA account for TokenA ( " +
-        config.DATA.SVM.ADDRESSES.TNEON9 +
+        config.DATA.SVM.ADDRESSES.TNEON12 +
         " )."
     );
   }
@@ -117,12 +117,12 @@ async function main() {
   }
 
   console.log(ataContractWSOL, "ataContractWSOL");
-  console.log(ataContractTNEON9, "ataContractTNEON9");
+  console.log(ataContractTNEON12, "ataContractTNEON12");
 
   //*************************** CREATE CPMM POOL *********************************//
 
   const mintA = await raydium.token.getTokenInfo(
-    config.DATA.SVM.ADDRESSES.TNEON9
+    config.DATA.SVM.ADDRESSES.TNEON12
   );
   const mintB = await raydium.token.getTokenInfo(
     config.DATA.SVM.ADDRESSES.WSOL
@@ -182,14 +182,20 @@ async function main() {
   //BUILD RAYDIUM CREATE POOL INSTRUCTION
 
   console.log("\nBroadcast creating pool transaction...");
-  solanaTx = new web3.Transaction();
-  solanaTx.add(instructionBuilderForCreatePool.builder.instructions[0]);
-  solanaTx.add(instructionBuilderForCreatePool.builder.instructions[1]);
-  solanaTx.add(instructionBuilderForCreatePool.builder.instructions[2]);
+  solanaTxCreatePool = new web3.Transaction();
+  solanaTxCreatePool.add(
+    instructionBuilderForCreatePool.builder.instructions[0]
+  );
+  solanaTxCreatePool.add(
+    instructionBuilderForCreatePool.builder.instructions[1]
+  );
+  solanaTxCreatePool.add(
+    instructionBuilderForCreatePool.builder.instructions[2]
+  );
 
   console.log("\nProcessing batchExecute method with all instructions ...");
   [tx, receipt] = await config.utils.batchExecute(
-    solanaTx.instructions,
+    solanaTxCreatePool.instructions,
     [50000000, 0, 1050000000],
     TestCallSolana,
     undefined,
@@ -262,11 +268,14 @@ async function main() {
   //BUILD LOCK LIQUIDITY INSTRUCTION
 
   console.log("\nBroadcast locking LP transaction...");
-  solanaTx.add(instructionBuilderForLockingLiquidity.builder.instructions[0]);
+  solanaTxLockLP = new web3.Transaction();
+  solanaTxLockLP.add(
+    instructionBuilderForLockingLiquidity.builder.instructions[0]
+  );
 
   [tx, receipt] = await config.utils.execute(
-    solanaTx.instructions[0],
-    4000000000,
+    solanaTxLockLP.instructions[0],
+    1000000000,
     TestCallSolana,
     salt,
     user
