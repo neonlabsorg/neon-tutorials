@@ -3,6 +3,8 @@ pragma solidity ^0.8.26;
 
 import {FixedPointMathLib} from "solady/src/utils/FixedPointMathLib.sol";
 
+/// @title BondingCurve
+/// @notice Implements a bonding curve for token pricing using exponential functions
 contract BondingCurve {
     using FixedPointMathLib for uint256;
     using FixedPointMathLib for int256;
@@ -15,7 +17,10 @@ contract BondingCurve {
         B = _b;
     }
 
-    // calculate the funds received for selling deltaX tokens
+    /// @notice Calculates the WSOL amount received for selling tokens
+    /// @param x0 Current token supply
+    /// @param deltaX Amount of tokens to sell
+    /// @return deltaY Amount of WSOL received
     function getFundsReceived(
         uint256 x0,
         uint256 deltaX
@@ -32,7 +37,10 @@ contract BondingCurve {
         deltaY = a.fullMulDiv(delta, b);
     }
 
-    // calculte the number of tokens that can be purchased for a given amount of funds
+    /// @notice Calculates the number of tokens received for a given WSOL amount
+    /// @param x0 Current token supply
+    /// @param deltaY Amount of WSOL to spend
+    /// @return deltaX Amount of tokens received
     function getAmountOut(
         uint256 x0,
         uint256 deltaY
