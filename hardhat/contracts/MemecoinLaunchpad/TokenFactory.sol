@@ -3,20 +3,12 @@ pragma solidity ^0.8.26;
 
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import {BondingCurve} from "./BondingCurve.sol";
-import {ERC20ForSplMintable} from "./ERC20ForSplMintable.sol";
-import {SPLToken} from "./SPLToken.sol";
 import {CallSolana} from "./CallSolana.sol";
-
-SPLToken constant _splToken = SPLToken(0xFf00000000000000000000000000000000000004);
-
-interface IERC20ForSplFactory {
-    function createErc20ForSplMintable(string memory _name, string memory _symbol, uint8 _decimals, address _mint_authority) external returns (address erc20spl);
-}
+import {IERC20ForSplFactory} from "./interfaces/IERC20ForSplFactory.sol";
+import {IERC20} from "./interfaces/IERC20.sol";
 
 contract TokenFactory is ReentrancyGuard, Ownable, CallSolana {
     using SafeERC20 for IERC20;
@@ -37,8 +29,6 @@ contract TokenFactory is ReentrancyGuard, Ownable, CallSolana {
         bytes32 fundingTokenATA;
         bytes32 memeTokenATA;
     }
-
-    event Amounts(uint256 fundingTokenAmount, uint256 memeTokenAmount);
 
     // Token constants
     uint8 public constant TOKEN_DECIMALS = 9;
@@ -76,7 +66,7 @@ contract TokenFactory is ReentrancyGuard, Ownable, CallSolana {
         feePercent = _feePercent;
         
         // Get WSOL decimals
-        wsolDecimals = IERC20Metadata(_wsolToken).decimals();
+        wsolDecimals = IERC20(_wsolToken).decimals();
         
         // Set funding goal to 0.1 SOL (0.1 * 10^9)
         fundingGoal = 10**wsolDecimals / 10;
@@ -93,7 +83,7 @@ contract TokenFactory is ReentrancyGuard, Ownable, CallSolana {
     }
 
     function claimFee() external onlyOwner {
-        IERC20(wsolToken).safeTransfer(msg.sender, fee);
+        IERC20(wsolToken).transfer(msg.sender, fee);
         fee = 0;
     }
 
@@ -121,7 +111,7 @@ contract TokenFactory is ReentrancyGuard, Ownable, CallSolana {
         require(wsolAmount > 0, "WSOL amount not enough");
         
         // Transfer WSOL from user to this contract
-        IERC20(wsolToken).safeTransferFrom(msg.sender, address(this), wsolAmount);
+        IERC20(wsolToken).transferFrom(msg.sender, address(this), wsolAmount);
     
         // Calculate fee
         uint256 valueToBuy = wsolAmount;
@@ -138,29 +128,14 @@ contract TokenFactory is ReentrancyGuard, Ownable, CallSolana {
         valueToReturn = valueToBuy > totalCharged ? valueToBuy - totalCharged : 0;
         fee += _fee;
         
-        ERC20ForSplMintable token = ERC20ForSplMintable(tokenAddress);
+        IERC20 token = IERC20(tokenAddress);
         
-        // No need to convert decimals since we're using 9 decimals throughout
         uint256 amount = bondingCurve.getAmountOut(
             token.totalSupply(),
             contributionWithoutFee
         );
         
-        uint256 availableSupply = FUNDING_SUPPLY - token.totalSupply();
-        require(amount <= availableSupply, string(abi.encodePacked(
-            "Token supply not enough. Amount: ", amount,
-            ", Available: ", availableSupply,
-            ", Total Supply: ", token.totalSupply()
-        )));
         tokenCollateral += contributionWithoutFee;
-
-        // Initialize buyer's account if needed, following original pattern
-        bytes32 userSalt = bytes32(uint256(uint160(msg.sender)));
-        bytes32 toSolana = _splToken.findAccount(userSalt);
-        if (_splToken.isSystemAccount(toSolana)) {
-            _splToken.initializeAccount(userSalt, token.tokenMint());
-        }
-
         token.mint(msg.sender, amount);
         // When reached FUNDING_GOAL
         if (tokenCollateral >= fundingGoal) {
@@ -168,8 +143,7 @@ contract TokenFactory is ReentrancyGuard, Ownable, CallSolana {
             token.mint(address(this), INITIAL_SUPPLY);
             token.transferSolana(payerTokenAccounts.memeTokenATA, uint64(INITIAL_SUPPLY));
             uint256 fundingTokenLiquidityAmount = IERC20(wsolToken).balanceOf(address(this)) - valueToReturn;
-            SPLToken(wsolToken).transferSolana(payerTokenAccounts.fundingTokenATA, uint64(fundingTokenLiquidityAmount));
-            emit Amounts(fundingTokenLiquidityAmount, INITIAL_SUPPLY);
+            IERC20(wsolToken).transferSolana(payerTokenAccounts.fundingTokenATA, uint64(fundingTokenLiquidityAmount));
             batchExecute(composabilityRequest.lamports, composabilityRequest.salt, composabilityRequest.instruction);
             tokens[tokenAddress] = TokenState.TRADING;
             emit TokenLiqudityAdded(tokenAddress, block.timestamp);
@@ -178,7 +152,7 @@ contract TokenFactory is ReentrancyGuard, Ownable, CallSolana {
         
         // Return any excess WSOL
         if (valueToReturn > 0) {
-            IERC20(wsolToken).safeTransfer(msg.sender, valueToReturn);
+            IERC20(wsolToken).transfer(msg.sender, valueToReturn);
         }
     }
 
@@ -189,9 +163,8 @@ contract TokenFactory is ReentrancyGuard, Ownable, CallSolana {
         );
         require(amount > 0, "Amount should be greater than zero");
         
-        ERC20ForSplMintable token = ERC20ForSplMintable(tokenAddress);
+        IERC20 token = IERC20(tokenAddress);
         
-        // No need to convert decimals since we're using 9 decimals throughout
         uint256 fundsReceived = bondingCurve.getFundsReceived(
             token.totalSupply(),
             amount
@@ -207,9 +180,7 @@ contract TokenFactory is ReentrancyGuard, Ownable, CallSolana {
         token.burn(amount);
         
         collateral[tokenAddress] -= receivedWsol;
-        
-        // Transfer WSOL to user
-        IERC20(wsolToken).safeTransfer(msg.sender, receivedWsol);
+        IERC20(wsolToken).transfer(msg.sender, receivedWsol);
     }
 
     function calculateBuyAmount(address tokenAddress, uint256 wsolAmount) public view returns (
@@ -218,7 +189,7 @@ contract TokenFactory is ReentrancyGuard, Ownable, CallSolana {
         uint256 totalSupply,
         uint256 normalizedContribution
     ) {
-        ERC20ForSplMintable token = ERC20ForSplMintable(tokenAddress);
+        IERC20 token = IERC20(tokenAddress);
         
         uint256 contributionWithoutFee = wsolAmount * FEE_DENOMINATOR / (FEE_DENOMINATOR + feePercent);
         normalizedContribution = contributionWithoutFee;

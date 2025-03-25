@@ -15,8 +15,6 @@ const FEE_PERCENT = 300; // 3% in basis points
 // Raydium constants
 const RAYDIUM_CREATE_CPMM_POOL_PROGRAM = DEVNET_PROGRAM_ID.CREATE_CPMM_POOL_PROGRAM;
 const RAYDIUM_CREATE_CPMM_POOL_FEE_ACC = DEVNET_PROGRAM_ID.CREATE_CPMM_POOL_FEE_ACC;
-const RAYDIUM_DEV_LOCK_CPMM_PROGRAM = "Lo9M9ViYN8yiSc8j2L1G97oy9wMJRbA7cGY7bBeW9xu";
-const RAYDIUM_DEV_LOCK_CPMM_AUTH = "2H85KymKPgHMUvtSJRNXDVQjR5X9DXLg1dqFWBZBmFqh";
 
 // Helper function to log transaction with explorer link
 async function logTransaction(tx, description) {
@@ -25,8 +23,14 @@ async function logTransaction(tx, description) {
     return receipt;
 }
 
-// Helper function to verify contract with delay
-async function verifyContractWithDelay(address, constructorArguments) {
+async function sleep(ms) {
+    console.log(`Waiting ${ms / 1000} seconds before verification...`);
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// Helper function to verify contract
+async function verifyContract(address, constructorArguments) {
+    await sleep(20000);
     try {
         await run("verify:verify", {
             address,
@@ -34,17 +38,10 @@ async function verifyContractWithDelay(address, constructorArguments) {
         });
         console.log(`Contract verified at ${address}`);
     } catch (error) {
-        console.log(`Verification failed: ${error.message}`);
-        // Wait 30 seconds before retrying
-        await new Promise(resolve => setTimeout(resolve, 30000));
-        try {
-            await run("verify:verify", {
-                address,
-                constructorArguments,
-            });
-            console.log(`Contract verified at ${address} after retry`);
-        } catch (retryError) {
-            console.log(`Verification failed after retry: ${retryError.message}`);
+        if (error.message.includes("Smart-contract already verified")) {
+            console.log(`Contract already verified at ${address}`);
+        } else {
+            throw error;
         }
     }
 }
@@ -64,9 +61,10 @@ async function main() {
     const bondingCurveAddress = await bondingCurve.getAddress();
     console.log(`BondingCurve deployed to: ${bondingCurveAddress}`);
 
+
     // Verify BondingCurve
     console.log("\nVerifying BondingCurve...");
-    await verifyContractWithDelay(bondingCurveAddress, [BONDING_CURVE_A, BONDING_CURVE_B]);
+    await verifyContract(bondingCurveAddress, [BONDING_CURVE_A, BONDING_CURVE_B]);
 
     // 2. Deploy TokenFactory
     console.log("\nDeploying TokenFactory...");
@@ -83,15 +81,12 @@ async function main() {
 
     // Verify TokenFactory
     console.log("\nVerifying TokenFactory...");
-    await verifyContractWithDelay(
-        tokenFactoryAddress,
-        [
-            ERC20_FOR_SPL_FACTORY_ADDRESS,
-            bondingCurveAddress,
-            WSOL_TOKEN_ADDRESS,
-            FEE_PERCENT
-        ]
-    );
+    await verifyContract(tokenFactoryAddress, [
+        ERC20_FOR_SPL_FACTORY_ADDRESS,
+        bondingCurveAddress,
+        WSOL_TOKEN_ADDRESS,
+        FEE_PERCENT
+    ]);
 
     // Create config object
     const config = {
@@ -101,12 +96,6 @@ async function main() {
         BONDING_CURVE_ADDRESS: bondingCurveAddress,
         FEE_PERCENT,
         SOLANA_RPC_URL: "https://api.devnet.solana.com",
-        RAYDIUM: {
-            CREATE_CPMM_POOL_PROGRAM: RAYDIUM_CREATE_CPMM_POOL_PROGRAM,
-            CREATE_CPMM_POOL_FEE_ACC: RAYDIUM_CREATE_CPMM_POOL_FEE_ACC,
-            DEV_LOCK_CPMM_PROGRAM: RAYDIUM_DEV_LOCK_CPMM_PROGRAM,
-            DEV_LOCK_CPMM_AUTH: RAYDIUM_DEV_LOCK_CPMM_AUTH
-        },
         TOKENS: {
             WSOL_MINT: "So11111111111111111111111111111111111111112"
         }
