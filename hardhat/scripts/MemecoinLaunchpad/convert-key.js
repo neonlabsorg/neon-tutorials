@@ -1,6 +1,6 @@
-import { Keypair } from '@solana/web3.js';
-import bs58 from 'bs58';
-import fs from 'fs';
+const { Keypair } = require('@solana/web3.js');
+const bs58 = require('bs58').default;
+const fs = require('fs');
 
 // Replace this with your private key from Phantom
 const privateKey = "<your-private-key>";

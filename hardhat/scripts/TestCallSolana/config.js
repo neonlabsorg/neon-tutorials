@@ -343,7 +343,6 @@ const config = {
         disableLoadToken: !(params && params.loadToken),
         blockhashCommitment: "finalized",
       });
-      console.log(raydium);
       return raydium, txVersion;
     },
   },
@@ -355,10 +354,6 @@ const config = {
           typeof overwriteAccounts != "undefined" &&
           Object.hasOwn(overwriteAccounts, i)
         ) {
-          console.log(
-            config.utils.publicKeyToBytes32(overwriteAccounts[i].key),
-            "publicKey"
-          );
           encodeKeys += ethers
             .solidityPacked(
               ["bytes32"],
@@ -372,12 +367,6 @@ const config = {
             .solidityPacked(["bool"], [overwriteAccounts[i].isWritable])
             .substring(2);
         } else {
-          console.log(
-            config.utils.publicKeyToBytes32(
-              instruction.keys[i].pubkey.toString()
-            ),
-            "publicKey"
-          );
           encodeKeys += ethers
             .solidityPacked(
               ["bytes32"],
@@ -409,7 +398,6 @@ const config = {
       const packedInstructionData = ethers
         .solidityPacked(["bytes"], [instruction.data])
         .substring(2);
-      console.log(packedInstructionData, "packedInstructionData");
 
       return (
         "0x" +
