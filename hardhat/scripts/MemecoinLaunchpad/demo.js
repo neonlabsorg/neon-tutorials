@@ -3,18 +3,18 @@ const fs = require("fs");
 const path = require("path");
 const web3 = require("@solana/web3.js");
 const {
-  getAssociatedTokenAddressSync,
-  TOKEN_PROGRAM_ID,
-  createAssociatedTokenAccountInstruction,
-  ASSOCIATED_TOKEN_PROGRAM_ID,
+    getAssociatedTokenAddressSync,
+    TOKEN_PROGRAM_ID,
+    createAssociatedTokenAccountInstruction,
+    ASSOCIATED_TOKEN_PROGRAM_ID,
 } = require("@solana/spl-token");
 const {
-  Raydium,
-  TxVersion,
-  DEVNET_PROGRAM_ID,
-  DEV_LOCK_CPMM_PROGRAM,
-  DEV_LOCK_CPMM_AUTH,
-  getCpmmPdaAmmConfigId,
+    Raydium,
+    TxVersion,
+    DEVNET_PROGRAM_ID,
+    DEV_LOCK_CPMM_PROGRAM,
+    DEV_LOCK_CPMM_AUTH,
+    getCpmmPdaAmmConfigId,
 } = require("@raydium-io/raydium-sdk-v2");
 const BN = require("bn.js");
 const BLOCKSCOUT_EXPLORER_URL = "https://neon-devnet.blockscout.com/tx/";
@@ -50,12 +50,12 @@ const txVersion = TxVersion.LEGACY;
 let raydium;
 const initSdk = async (params = {}) => {
     if (raydium) return raydium;
-    
+
     // Using payer from TokenFactory as owner for Raydium
     const TokenFactory = await ethers.getContractAt("TokenFactory", localConfig.TOKEN_FACTORY_ADDRESS);
     const payerHex = await TokenFactory.getPayer();
     const owner = new web3.PublicKey(ethers.encodeBase58(payerHex));
-    
+
     raydium = await Raydium.load({
         owner,
         connection,
@@ -64,7 +64,7 @@ const initSdk = async (params = {}) => {
         disableLoadToken: !params.loadToken,
         blockhashCommitment: "finalized",
     });
-    
+
     return raydium;
 };
 
@@ -123,7 +123,7 @@ async function createATAsForPayer(connection, payerBase58, tokenMints) {
         if (process.env.ANCHOR_WALLET === undefined) {
             throw new Error("Please set ANCHOR_WALLET environment variable to point to your id.json file");
         }
-        
+
         console.log(`Loading keypair from ${process.env.ANCHOR_WALLET}`);
         const secretKeyArray = JSON.parse(fs.readFileSync(process.env.ANCHOR_WALLET).toString());
         keypair = web3.Keypair.fromSecretKey(
@@ -138,7 +138,7 @@ async function createATAsForPayer(connection, payerBase58, tokenMints) {
 
     const payerPublicKey = new web3.PublicKey(payerBase58);
     console.log(`Target payer public key: ${payerPublicKey.toString()}`);
-  
+
     const transaction = new web3.Transaction();
     let atasToBeCreated = "";
 
@@ -147,28 +147,28 @@ async function createATAsForPayer(connection, payerBase58, tokenMints) {
         console.log(`Processing funding token mint: ${tokenMints[i]}`);
 
         const associatedToken = getAssociatedTokenAddressSync(
-          new web3.PublicKey(tokenMints[i]),
-          payerPublicKey,
-          true,
-          TOKEN_PROGRAM_ID,
-          ASSOCIATED_TOKEN_PROGRAM_ID
+            new web3.PublicKey(tokenMints[i]),
+            payerPublicKey,
+            true,
+            TOKEN_PROGRAM_ID,
+            ASSOCIATED_TOKEN_PROGRAM_ID
         );
         const ataInfo = await connection.getAccountInfo(associatedToken);
 
         // create ATA only if it's missing
         if (!ataInfo || !ataInfo.data) {
-          atasToBeCreated += tokenMints[i] + ", ";
-    
-          transaction.add(
-            createAssociatedTokenAccountInstruction(
-              keypair.publicKey,
-              associatedToken,
-              payerPublicKey,
-              new web3.PublicKey(tokenMints[i]),
-              TOKEN_PROGRAM_ID,
-              ASSOCIATED_TOKEN_PROGRAM_ID
-            )
-          );
+            atasToBeCreated += tokenMints[i] + ", ";
+
+            transaction.add(
+                createAssociatedTokenAccountInstruction(
+                    keypair.publicKey,
+                    associatedToken,
+                    payerPublicKey,
+                    new web3.PublicKey(tokenMints[i]),
+                    TOKEN_PROGRAM_ID,
+                    ASSOCIATED_TOKEN_PROGRAM_ID
+                )
+            );
         }
     }
 
@@ -181,11 +181,11 @@ async function createATAsForPayer(connection, payerBase58, tokenMints) {
             try {
                 // Get latest blockhash
                 const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('finalized');
-                
+
                 // Set the blockhash and last valid block height
                 transaction.recentBlockhash = blockhash;
                 transaction.lastValidBlockHeight = lastValidBlockHeight;
-                
+
                 // Sign and send transaction
                 signature = await web3.sendAndConfirmTransaction(
                     connection,
@@ -197,7 +197,7 @@ async function createATAsForPayer(connection, payerBase58, tokenMints) {
                         commitment: 'confirmed'
                     }
                 );
-                
+
                 await waitForSolanaConfirmation(connection, signature);
                 success = true;
                 console.log(`Transaction successful with signature: ${signature}`);
@@ -250,6 +250,65 @@ async function createATAsForPayer(connection, payerBase58, tokenMints) {
     };
 }
 
+// Helper function to build Raydium pool creation instructions
+async function buildPoolCreationInstructions(raydiumWithTokens, payerBase58, newTokenMint, wsolTokenMint) {
+    const mintA = await raydiumWithTokens.token.getTokenInfo(newTokenMint);
+    const mintB = await raydiumWithTokens.token.getTokenInfo(wsolTokenMint);
+
+    const feeConfigs = await raydiumWithTokens.api.getCpmmConfigs();
+    if (raydiumWithTokens.cluster === "devnet") {
+        feeConfigs.forEach((configItem) => {
+            configItem.id = getCpmmPdaAmmConfigId(
+                DEVNET_PROGRAM_ID.CREATE_CPMM_POOL_PROGRAM,
+                configItem.index
+            ).publicKey.toBase58();
+        });
+    }
+
+    const createPoolArgs = {
+        programId: DEVNET_PROGRAM_ID.CREATE_CPMM_POOL_PROGRAM,
+        poolFeeAccount: DEVNET_PROGRAM_ID.CREATE_CPMM_POOL_FEE_ACC,
+        mintA,
+        mintB,
+        mintAAmount: new BN(200000000000000),
+        mintBAmount: new BN(103000000),
+        startTime: new BN(0),
+        feeConfig: feeConfigs[0],
+        associatedOnly: false,
+        ownerInfo: {
+            useSOLBalance: true,
+        },
+        feePayer: new web3.PublicKey(payerBase58),
+        txVersion,
+    };
+
+    await raydiumWithTokens.account.fetchWalletTokenAccounts();
+
+    const instructionBuilderForCreatePool = await raydiumWithTokens.cpmm.createPool(createPoolArgs);
+
+    instructionBuilderForCreatePool.builder.instructions[2].keys[0] = {
+        pubkey: new web3.PublicKey(payerBase58),
+        isSigner: true,
+        isWritable: true,
+    };
+
+    const solanaTx = new web3.Transaction();
+    solanaTx.add(instructionBuilderForCreatePool.builder.instructions[0]);
+    solanaTx.add(instructionBuilderForCreatePool.builder.instructions[1]);
+    solanaTx.add(instructionBuilderForCreatePool.builder.instructions[2]);
+
+    console.log("======= INSTRUCTION PREPARATION =======");
+    const instructions = solanaTx.instructions.map(instruction => {
+        return config.utils.prepareInstruction(instruction);
+    });
+    console.log("======== INSTRUCTION PREPARED ========");
+
+    return {
+        instructions,
+        poolId: instructionBuilderForCreatePool.builder.instructions[2].keys[3].pubkey
+    };
+}
+
 async function main() {
     console.log("\nInitializing Raydium SDK...");
     const raydium = await initSdk();
@@ -258,136 +317,116 @@ async function main() {
     const wsolToken = await ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", WSOL_TOKEN_ADDRESS);
     const wsolMetadata = await ethers.getContractAt("@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol:IERC20Metadata", WSOL_TOKEN_ADDRESS);
     const wsolDecimals = await wsolMetadata.decimals();
-    
+
     const TokenFactory = await ethers.getContractAt("TokenFactory", TOKEN_FACTORY_ADDRESS);
     const [deployer] = await ethers.getSigners();
-    
+
     const wsolBalance = await wsolToken.balanceOf(deployer.address);
     console.log(`WSOL balance: ${ethers.formatUnits(wsolBalance, wsolDecimals)} WSOL`);
-    
+
     // 1. Create a token
     console.log("\n1. Creating a token...");
     const createTx = await TokenFactory.createToken(TOKEN_NAME, TOKEN_SYMBOL);
     const createReceipt = await logTransaction(createTx, "Token creation transaction");
-    
+
     const tokenCreatedEvents = await TokenFactory.queryFilter(
         TokenFactory.filters.TokenCreated(),
         createReceipt.blockNumber,
         createReceipt.blockNumber
     );
-    
+
     if (tokenCreatedEvents.length === 0) {
         throw new Error("Failed to find TokenCreated event");
     }
-    
+
     const newTokenAddress = tokenCreatedEvents[0].args.token;
     console.log(`Token created at: ${newTokenAddress}`);
-    
+
     const tokenContract = await ethers.getContractAt("contracts/MemecoinLaunchpad/interfaces/IERC20.sol:IERC20", newTokenAddress);
-    
+
     const payer = await TokenFactory.getPayer();
     const payerBase58 = ethers.encodeBase58(payer);
-    
+
     const wsolTokenMint = localConfig.TOKENS.WSOL_MINT;
     const newTokenMintHex = await tokenContract.tokenMint();
     const newTokenMint = ethers.encodeBase58(newTokenMintHex);
-    
-    // 2. Buy directly with full funding goal (plus buffer)
-    console.log("\n2. Buy to reach funding goal and create Raydium pool...");
-    
-    const buyAmount = FUNDING_GOAL_MULTIPLIER * BUY_BUFFER / 100n;
-    console.log(`Buying with ${ethers.formatUnits(buyAmount, wsolDecimals)} WSOL (with ${BUY_BUFFER - 100n}% buffer)...`);
-    
-    await logTransaction(
-        await wsolToken.approve(TOKEN_FACTORY_ADDRESS, buyAmount),
-        "WSOL approval for buy"
-    );
-    
+
     try {
         const tokenMints = [wsolTokenMint, newTokenMint];
         const { fundingTokenATABytes32, memeTokenATABytes32 } = await createATAsForPayer(connection, payerBase58, tokenMints);
-        
+
         const raydiumWithTokens = await initSdk({ loadToken: true });
         await raydiumWithTokens.account.fetchWalletTokenAccounts();
 
-        const mintA = await raydiumWithTokens.token.getTokenInfo(newTokenMint);
-        const mintB = await raydiumWithTokens.token.getTokenInfo(wsolTokenMint);
-
-        const feeConfigs = await raydiumWithTokens.api.getCpmmConfigs();
-        if (raydiumWithTokens.cluster === "devnet") {
-            feeConfigs.forEach((configItem) => {
-                configItem.id = getCpmmPdaAmmConfigId(
-                    DEVNET_PROGRAM_ID.CREATE_CPMM_POOL_PROGRAM,
-                    configItem.index
-                ).publicKey.toBase58();
-            });
-        }
-
-        const createPoolArgs = {
-            programId: DEVNET_PROGRAM_ID.CREATE_CPMM_POOL_PROGRAM, 
-            poolFeeAccount: DEVNET_PROGRAM_ID.CREATE_CPMM_POOL_FEE_ACC,
-            mintA,
-            mintB,
-            mintAAmount: new BN(200000000000000),
-            mintBAmount: new BN(103000000),
-            startTime: new BN(0),
-            feeConfig: feeConfigs[0],
-            associatedOnly: false,
-            ownerInfo: {
-                useSOLBalance: true,
-            },
-            feePayer: new web3.PublicKey(payerBase58),
-            txVersion,
-        };
-            
-        await raydiumWithTokens.account.fetchWalletTokenAccounts();
-        
-        const instructionBuilderForCreatePool = await raydiumWithTokens.cpmm.createPool(createPoolArgs);
-
-        instructionBuilderForCreatePool.builder.instructions[2].keys[0] = {
-            pubkey: new web3.PublicKey(payerBase58),
-            isSigner: true,
-            isWritable: true,
-        };
-
-        const solanaTx = new web3.Transaction();
-        solanaTx.add(instructionBuilderForCreatePool.builder.instructions[0]);
-        solanaTx.add(instructionBuilderForCreatePool.builder.instructions[1]);
-        solanaTx.add(instructionBuilderForCreatePool.builder.instructions[2]);
-
-        console.log("======= INSTRUCTION PREPARATION =======");
-        const instructions = solanaTx.instructions.map(instruction => {
-            return config.utils.prepareInstruction(instruction);
-        });
-        console.log("======== INSTRUCTION PREPARED ========");
+        // Build instructions once to reuse
+        const { instructions, poolId } = await buildPoolCreationInstructions(raydiumWithTokens, payerBase58, newTokenMint, wsolTokenMint);
         const lamports = [500000000, 0, 1500000000];
         const saltValues = [ethers.ZeroHash, ethers.ZeroHash, ethers.ZeroHash];
 
-        console.log("executing buy transaction...");
+        // 2. First buy - small amount that won't reach funding goal
+        console.log("\n2. First buy - small amount...");
+        const smallBuyAmount = FUNDING_GOAL_MULTIPLIER / 4n; // 0.025 SOL
+        console.log(`Buying with ${ethers.formatUnits(smallBuyAmount, wsolDecimals)} WSOL...`);
+
         await logTransaction(
-            await TokenFactory.buy(newTokenAddress, buyAmount, 
-                { lamports: lamports, salt: saltValues, instruction: instructions }, 
-                {fundingTokenATA: fundingTokenATABytes32, memeTokenATA: memeTokenATABytes32}),
-            "Buy transaction with Raydium pool creation"
+            await wsolToken.approve(TOKEN_FACTORY_ADDRESS, smallBuyAmount),
+            "WSOL approval for first buy"
+        );
+
+        await logTransaction(
+            await TokenFactory.buy(newTokenAddress, smallBuyAmount,
+                { lamports: lamports, salt: saltValues, instruction: instructions },
+                { fundingTokenATA: fundingTokenATABytes32, memeTokenATA: memeTokenATABytes32 }),
+            "First buy transaction"
+        );
+
+        // 3. Sell some tokens
+        console.log("\n3. Selling some tokens...");
+        const tokenBalance = await tokenContract.balanceOf(deployer.address);
+        const sellAmount = tokenBalance / 2n; // Sell half of the tokens
+        console.log(`Selling ${ethers.formatUnits(sellAmount, await tokenContract.decimals())} tokens...`);
+
+        await logTransaction(
+            await tokenContract.approve(TOKEN_FACTORY_ADDRESS, sellAmount),
+            "Token approval for sell"
+        );
+
+        await logTransaction(
+            await TokenFactory.sell(newTokenAddress, sellAmount),
+            "Sell transaction"
+        );
+
+        // 4. Final buy to reach funding goal and create Raydium pool
+        console.log("\n4. Final buy to reach funding goal and create Raydium pool...");
+        const remainingAmount = FUNDING_GOAL_MULTIPLIER * BUY_BUFFER / 100n;
+        console.log(`Buying with ${ethers.formatUnits(remainingAmount, wsolDecimals)} WSOL (with ${BUY_BUFFER - 100n}% buffer)...`);
+
+        await logTransaction(
+            await wsolToken.approve(TOKEN_FACTORY_ADDRESS, remainingAmount),
+            "WSOL approval for final buy"
+        );
+
+        await logTransaction(
+            await TokenFactory.buy(newTokenAddress, remainingAmount,
+                { lamports: lamports, salt: saltValues, instruction: instructions },
+                { fundingTokenATA: fundingTokenATABytes32, memeTokenATA: memeTokenATABytes32 }),
+            "Final buy transaction with Raydium pool creation"
         );
 
         //*************************** LOCK LIQUIDITY *********************************/
         console.log("\nProceeding with liquidity locking...");
-        
-        const poolId = new web3.PublicKey(
-            instructionBuilderForCreatePool.builder.instructions[2].keys[3].pubkey
-        );
+
         const salt = generateUniqueSalt();
         console.log(`Generated unique salt: ${salt}`);
         const externalAuthority = ethers.encodeBase58(await TokenFactory.getExtAuthority(salt));
-        
+
         let poolInfo;
         let poolKeys;
         if (raydium.cluster === "mainnet") {
             const data = await raydium.api.fetchPoolById({ ids: poolId });
             poolInfo = data[0];
             if (!isValidCpmm(poolInfo.programId))
-            throw new Error("Target pool is not CPMM pool");
+                throw new Error("Target pool is not CPMM pool");
         } else {
             const data = await raydium.cpmm.getPoolInfoFromRpc(poolId);
             poolInfo = data.poolInfo;
@@ -431,7 +470,7 @@ async function main() {
         await logTransaction(tx, "Lock liquidity transaction");
 
         const tokenState = await TokenFactory.tokens(newTokenAddress);
-        
+
         if (tokenState === TokenState.TRADING) {
             console.log("\nSuccess! Token launch completed:");
             console.log(`- Token created at: ${newTokenAddress}`);
@@ -449,7 +488,7 @@ async function main() {
         console.error("Error during Raydium pool setup:", err);
         throw err;
     }
-    
+
     console.log("\n--- Testing Completed Successfully ---");
 }
 
