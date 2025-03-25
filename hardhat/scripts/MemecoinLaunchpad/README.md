@@ -1,5 +1,7 @@
 # Memecoin Launchpad with Raydium Integration
 
+> **⚠️ DISCLAIMER**: This is a demo project for testing purposes only. The contracts and scripts have not been audited and should not be used in production. Use at your own risk.
+
 This directory contains scripts for deploying and testing the Memecoin Launchpad smart contracts on the Neon EVM network, now integrated with Raydium DEX on Solana.
 
 ## Contracts
@@ -11,7 +13,7 @@ This directory contains scripts for deploying and testing the Memecoin Launchpad
 
 ## Deployment Process
 
-The deployment script (`deploy.js`) performs the following actions:
+The deployment script ([`deploy.js`](deploy.js)) performs the following actions:
 
 1. Deploys the `BondingCurve` contract with preset parameters
 2. Deploys the `TokenFactory` contract with the following dependencies:
@@ -20,11 +22,11 @@ The deployment script (`deploy.js`) performs the following actions:
    - WSOL token address
    - Fee percentage (in basis points)
 3. Verifies both contracts on the Neon Blockscout explorer
-4. Saves all contract addresses and Raydium configuration to a `config.json` file for later use
+4. Saves all contract addresses and Raydium configuration to a [`config.json`](config.json) file for later use
 
 ## Testing Process
 
-The test script (`demo.js`) loads the contract addresses from the `config.json` file and performs these actions:
+The test script ([`demo.js`](demo.js)) loads the contract addresses from the [`config.json`](config.json) file and performs these actions:
 
 1. Creates a new token through the `TokenFactory`
 2. Retrieves and converts the Solana token mint addresses for integration with Raydium
@@ -51,6 +53,42 @@ The launchpad now uses cross-chain functionality to:
 - Funded wallet on Neon network
 - Raydium SDK v2 installed (`npm install @raydium-io/raydium-sdk-v2`)
 - Solana web3.js installed (`npm install @solana/web3.js @solana/spl-token`)
+- Solana wallet keypair file (`id.json`) for creating Associated Token Accounts (ATAs)
+- Set the `ANCHOR_WALLET` environment variable to point to your `id.json` file:
+  ```bash
+  export ANCHOR_WALLET=./id.json
+  ```
+
+### Solana Wallet Setup
+
+The project requires a Solana wallet keypair file (`id.json`) for creating Associated Token Accounts (ATAs) and interacting with Solana programs. This is the standard format used by Anchor framework and is compatible with various Solana programs including Orca, Raydium, and other DeFi protocols on Solana.
+
+To set up your wallet:
+1. Set the `ANCHOR_WALLET` environment variable to point to your `id.json` file:
+  ```bash
+  export ANCHOR_WALLET=./id.json
+  ```
+
+### Converting Phantom Wallet Private Key to id.json
+
+If you're using a Phantom wallet, you'll need to convert your private key to the `id.json` format:
+
+1. Export your private key from Phantom wallet (Settings -> Export Private Key)
+
+2. Edit the [`convert-key.js`](convert-key.js) script in this directory:
+   - Replace the `privateKey` value with your exported private key
+   - ⚠️ **IMPORTANT**: Never commit your private key to the script or any repository
+   - ⚠️ **IMPORTANT**: Make sure to remove your private key from the script after use
+   - Run the script:
+   ```bash
+   node convert-key.js
+   ```
+
+3. The script will create an `id.json` file. Make sure to:
+   - Keep this file secure and never share it
+   - Set the correct permissions: `chmod 600 id.json`
+   - Set the `ANCHOR_WALLET` environment variable as shown above
+   - ⚠️ **IMPORTANT**: Never commit the `id.json` file to any repository
 
 ### Deployment
 
@@ -60,7 +98,7 @@ To deploy the contracts and generate the configuration file:
 npx hardhat run scripts/MemecoinLaunchpad/deploy.js --network neondevnet
 ```
 
-This will deploy both contracts and create a `config.json` file with all necessary addresses and Raydium configuration.
+This will deploy both contracts and create a [`config.json`](config.json) file with all necessary addresses and Raydium configuration.
 
 ### Testing
 
@@ -70,7 +108,7 @@ After deployment, you can test the functionality with:
 npx hardhat run scripts/MemecoinLaunchpad/demo.js --network neondevnet
 ```
 
-This script will use the addresses from the `config.json` file to interact with the deployed contracts and create a Raydium liquidity pool.
+This script will use the addresses from the [`config.json`](config.json) file to interact with the deployed contracts and create a Raydium liquidity pool.
 
 ## Configuration Parameters
 
