@@ -24,14 +24,15 @@ The deployment script (`deploy.js`) performs the following actions:
 
 ## Testing Process
 
-The test script (`testMoraswap.js`) loads the contract addresses from the `config.json` file and performs these actions:
+The test script (`demo.js`) loads the contract addresses from the `config.json` file and performs these actions:
 
 1. Creates a new token through the `TokenFactory`
 2. Retrieves and converts the Solana token mint addresses for integration with Raydium
-3. Executes a first buy transaction (50% of funding goal)
-4. Sells a portion of the tokens
+3. Executes a first buy transaction (25% of funding goal)
+4. Sells 50% of the acquired tokens
 5. Performs a final buy to meet the funding goal, which triggers the creation of a Raydium liquidity pool
-6. Verifies that the token state has changed to TRADING
+6. Locks the liquidity in the Raydium pool
+7. Verifies that the token state has changed to TRADING
 
 ## Solana Integration
 
@@ -66,7 +67,7 @@ This will deploy both contracts and create a `config.json` file with all necessa
 After deployment, you can test the functionality with:
 
 ```bash
-npx hardhat run scripts/MemecoinLaunchpad/testMoraswap.js --network neondevnet
+npx hardhat run scripts/MemecoinLaunchpad/demo.js --network neondevnet
 ```
 
 This script will use the addresses from the `config.json` file to interact with the deployed contracts and create a Raydium liquidity pool.
@@ -97,10 +98,11 @@ The script automatically handles conversion between:
 ## Transaction Flow
 
 1. **Token Creation**: Creates a new ERC20 token with specified name and symbol
-2. **First Buy**: Initial purchase of 50% of the funding goal
-3. **Sell**: Sells 10% of the acquired tokens
-4. **Final Buy with Raydium Integration**: Purchases remaining amount to meet funding goal and creates a Raydium liquidity pool
+2. **First Buy**: Initial purchase of 25% of the funding goal
+3. **Sell**: Sells 50% of the acquired tokens
+4. **Final Buy with Raydium Integration**: Purchases remaining amount to meet funding goal
 5. **Raydium Pool Creation**: Automatically creates a CPMM pool on Raydium when funding goal is met
+6. **Liquidity Locking**: Locks the liquidity in the Raydium pool using external authority
 
 ## Troubleshooting
 
