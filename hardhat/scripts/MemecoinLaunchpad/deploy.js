@@ -19,12 +19,12 @@ const RAYDIUM_CREATE_CPMM_POOL_FEE_ACC = DEVNET_PROGRAM_ID.CREATE_CPMM_POOL_FEE_
 // Helper function to log transaction with explorer link
 async function logTransaction(tx, description) {
     const receipt = await tx.wait();
-    console.log(`${description}: ${BLOCKSCOUT_EXPLORER_URL}${tx.hash}`);
+    console.log(`✅ ${description}: ${BLOCKSCOUT_EXPLORER_URL}${tx.hash}`);
     return receipt;
 }
 
 async function sleep(ms) {
-    console.log(`Waiting ${ms / 1000} seconds before verification...`);
+    console.log(`⏳ Waiting ${ms / 1000} seconds before verification...`);
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
@@ -36,38 +36,38 @@ async function verifyContract(address, constructorArguments) {
             address,
             constructorArguments,
         });
-        console.log(`Contract verified at ${address}`);
+        console.log(`✅ Contract verified at ${address}`);
     } catch (error) {
         if (error.message.includes("Smart-contract already verified")) {
-            console.log(`Contract already verified at ${address}`);
+            console.log(`ℹ️  Contract already verified at ${address}`);
         } else {
+            console.error(`❌ Verification failed:`, error);
             throw error;
         }
     }
 }
 
 async function main() {
-    console.log("Deploying MemecoinLaunchpad contracts with Raydium integration...");
+    console.log("\n🚀 Deploying MemecoinLaunchpad contracts with Raydium integration...");
 
     // Get the signer
     const [deployer] = await ethers.getSigners();
-    console.log(`Deploying with account: ${deployer.address}`);
+    console.log(`👤 Deploying with account: ${deployer.address}`);
 
     // 1. Deploy BondingCurve
-    console.log("\nDeploying BondingCurve...");
+    console.log("\n📝 Step 1: Deploying BondingCurve...");
     const BondingCurve = await ethers.getContractFactory("BondingCurve");
     const bondingCurve = await BondingCurve.deploy(BONDING_CURVE_A, BONDING_CURVE_B);
     await logTransaction(bondingCurve.deploymentTransaction(), "BondingCurve deployment");
     const bondingCurveAddress = await bondingCurve.getAddress();
-    console.log(`BondingCurve deployed to: ${bondingCurveAddress}`);
-
+    console.log(`   Contract address: ${bondingCurveAddress}`);
 
     // Verify BondingCurve
-    console.log("\nVerifying BondingCurve...");
+    console.log("\n🔍 Verifying BondingCurve...");
     await verifyContract(bondingCurveAddress, [BONDING_CURVE_A, BONDING_CURVE_B]);
 
     // 2. Deploy TokenFactory
-    console.log("\nDeploying TokenFactory...");
+    console.log("\n📝 Step 2: Deploying TokenFactory...");
     const TokenFactory = await ethers.getContractFactory("TokenFactory");
     const tokenFactory = await TokenFactory.deploy(
         ERC20_FOR_SPL_FACTORY_ADDRESS,
@@ -77,10 +77,10 @@ async function main() {
     );
     await logTransaction(tokenFactory.deploymentTransaction(), "TokenFactory deployment");
     const tokenFactoryAddress = await tokenFactory.getAddress();
-    console.log(`TokenFactory deployed to: ${tokenFactoryAddress}`);
+    console.log(`   Contract address: ${tokenFactoryAddress}`);
 
     // Verify TokenFactory
-    console.log("\nVerifying TokenFactory...");
+    console.log("\n🔍 Verifying TokenFactory...");
     await verifyContract(tokenFactoryAddress, [
         ERC20_FOR_SPL_FACTORY_ADDRESS,
         bondingCurveAddress,
@@ -104,14 +104,14 @@ async function main() {
     // Save config to file
     const configPath = path.join(__dirname, "config.json");
     fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
-    console.log(`\nConfig saved to: ${configPath}`);
+    console.log(`\n💾 Config saved to: ${configPath}`);
 
-    console.log("\n--- Deployment Completed Successfully ---");
-    console.log("\nDeployed addresses:");
+    console.log("\n✨ Deployment Completed Successfully ✨");
+    console.log("\n📋 Deployed addresses:");
     console.log(JSON.stringify(config, null, 2));
 }
 
 main().catch((error) => {
-    console.error(error);
+    console.error("❌ Deployment failed:", error);
     process.exitCode = 1;
 }); 

@@ -95,57 +95,34 @@ const TokenState = {
 // Helper function to log transaction with explorer link
 async function logTransaction(tx, description) {
     const receipt = await tx.wait();
-    console.log(`${description}: ${BLOCKSCOUT_EXPLORER_URL}${tx.hash}`);
+    console.log(`✅ ${description}: ${BLOCKSCOUT_EXPLORER_URL}${tx.hash}`);
     return receipt;
-}
-
-// Helper function to wait for Solana transaction confirmation
-async function waitForSolanaConfirmation(connection, signature) {
-    console.log(`Waiting for Solana transaction confirmation: ${signature}`);
-    try {
-        const confirmation = await connection.confirmTransaction(signature, 'confirmed');
-        if (confirmation.value.err) {
-            throw new Error(`Transaction failed: ${confirmation.value.err}`);
-        }
-        console.log(`Transaction confirmed: ${signature}`);
-        return confirmation;
-    } catch (error) {
-        console.error(`Error confirming transaction: ${error.message}`);
-        throw error;
-    }
 }
 
 // Helper function to create ATAs directly via Solana Web3.js
 async function createATAsForPayer(connection, payerBase58, tokenMints) {
-    console.log("\nCreating ATAs directly via Solana Web3.js...");
+    console.log("\n🔑 Creating Associated Token Accounts...");
     let keypair;
     try {
         if (process.env.ANCHOR_WALLET === undefined) {
             throw new Error("Please set ANCHOR_WALLET environment variable to point to your id.json file");
         }
 
-        console.log(`Loading keypair from ${process.env.ANCHOR_WALLET}`);
         const secretKeyArray = JSON.parse(fs.readFileSync(process.env.ANCHOR_WALLET).toString());
         keypair = web3.Keypair.fromSecretKey(
             Uint8Array.from(secretKeyArray)
         );
-        console.log(`Using keypair with public key: ${keypair.publicKey.toString()}`);
     } catch (error) {
-        console.error("Error loading keypair:", error);
+        console.error("❌ Error loading keypair:", error);
         throw error;
     }
-    console.log(keypair.publicKey.toString(), "keypair pubkey");
 
     const payerPublicKey = new web3.PublicKey(payerBase58);
-    console.log(`Target payer public key: ${payerPublicKey.toString()}`);
-
     const transaction = new web3.Transaction();
     let atasToBeCreated = "";
 
     // Check and create ATAs for each token mint
     for (let i = 0, len = tokenMints.length; i < len; ++i) {
-        console.log(`Processing funding token mint: ${tokenMints[i]}`);
-
         const associatedToken = getAssociatedTokenAddressSync(
             new web3.PublicKey(tokenMints[i]),
             payerPublicKey,
@@ -155,7 +132,6 @@ async function createATAsForPayer(connection, payerBase58, tokenMints) {
         );
         const ataInfo = await connection.getAccountInfo(associatedToken);
 
-        // create ATA only if it's missing
         if (!ataInfo || !ataInfo.data) {
             atasToBeCreated += tokenMints[i] + ", ";
 
@@ -173,51 +149,27 @@ async function createATAsForPayer(connection, payerBase58, tokenMints) {
     }
 
     if (transaction.instructions.length) {
-        let signature;
-        let retries = 3; // Maximum number of retries
-        let success = false;
+        try {
+            const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('finalized');
+            transaction.recentBlockhash = blockhash;
+            transaction.lastValidBlockHeight = lastValidBlockHeight;
 
-        while (retries > 0 && !success) {
-            try {
-                // Get latest blockhash
-                const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('finalized');
-
-                // Set the blockhash and last valid block height
-                transaction.recentBlockhash = blockhash;
-                transaction.lastValidBlockHeight = lastValidBlockHeight;
-
-                // Sign and send transaction
-                signature = await web3.sendAndConfirmTransaction(
-                    connection,
-                    transaction,
-                    [keypair],
-                    {
-                        skipPreflight: false,
-                        maxRetries: 3,
-                        commitment: 'confirmed'
-                    }
-                );
-
-                await waitForSolanaConfirmation(connection, signature);
-                success = true;
-                console.log(`Transaction successful with signature: ${signature}`);
-            } catch (error) {
-                retries--;
-                if (error.message.includes('block height exceeded') && retries > 0) {
-                    console.log(`Transaction expired, retrying... (${retries} attempts left)`);
-                    // Wait a bit before retrying
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                    continue;
+            await web3.sendAndConfirmTransaction(
+                connection,
+                transaction,
+                [keypair],
+                {
+                    skipPreflight: false,
+                    maxRetries: 3,
+                    commitment: 'confirmed'
                 }
-                throw error;
-            }
-        }
-
-        if (!success) {
-            throw new Error('Failed to send transaction after multiple retries');
+            );
+        } catch (error) {
+            console.error("❌ Failed to create Associated Token Accounts:", error);
+            throw error;
         }
     } else {
-        return console.error("\nNo instructions included into transaction.");
+        return console.error("\n❌ No instructions included into transaction.");
     }
 
     const fundingTokenATA = getAssociatedTokenAddressSync(
@@ -239,10 +191,9 @@ async function createATAsForPayer(connection, payerBase58, tokenMints) {
     );
 
     const memeTokenATABytes32 = config.utils.publicKeyToBytes32(memeTokenATA.toString());
-    console.log(memeTokenATA.toString(), "memeTokenATA");
-    console.log(memeTokenATABytes32, "memeTokenATABytes32");
-    console.log(fundingTokenATA.toString(), "fundingTokenATA");
-    console.log(fundingTokenATABytes32, "fundingTokenATABytes32");
+    console.log(`\n📝 Associated Token Accounts created:`);
+    console.log(`   Meme Token ATA: ${memeTokenATABytes32}`);
+    console.log(`   Funding Token ATA: ${fundingTokenATABytes32}`);
 
     return {
         fundingTokenATABytes32,
@@ -297,11 +248,9 @@ async function buildPoolCreationInstructions(raydiumWithTokens, payerBase58, new
     solanaTx.add(instructionBuilderForCreatePool.builder.instructions[1]);
     solanaTx.add(instructionBuilderForCreatePool.builder.instructions[2]);
 
-    console.log("======= INSTRUCTION PREPARATION =======");
     const instructions = solanaTx.instructions.map(instruction => {
         return config.utils.prepareInstruction(instruction);
     });
-    console.log("======== INSTRUCTION PREPARED ========");
 
     return {
         instructions,
@@ -310,9 +259,9 @@ async function buildPoolCreationInstructions(raydiumWithTokens, payerBase58, new
 }
 
 async function main() {
-    console.log("\nInitializing Raydium SDK...");
+    console.log("\n🚀 Initializing Raydium SDK...");
     const raydium = await initSdk();
-    console.log("Testing MemecoinLaunchpad contracts with Raydium integration...");
+    console.log("🧪 Testing MemecoinLaunchpad contracts with Raydium integration...");
 
     const wsolToken = await ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", WSOL_TOKEN_ADDRESS);
     const wsolMetadata = await ethers.getContractAt("@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol:IERC20Metadata", WSOL_TOKEN_ADDRESS);
@@ -322,12 +271,12 @@ async function main() {
     const [deployer] = await ethers.getSigners();
 
     const wsolBalance = await wsolToken.balanceOf(deployer.address);
-    console.log(`WSOL balance: ${ethers.formatUnits(wsolBalance, wsolDecimals)} WSOL`);
+    console.log(`💰 WSOL balance: ${ethers.formatUnits(wsolBalance, wsolDecimals)} WSOL`);
 
     // 1. Create a token
-    console.log("\n1. Creating a token...");
+    console.log("\n📝 Step 1: Creating a token...");
     const createTx = await TokenFactory.createToken(TOKEN_NAME, TOKEN_SYMBOL);
-    const createReceipt = await logTransaction(createTx, "Token creation transaction");
+    const createReceipt = await logTransaction(createTx, "Token creation");
 
     const tokenCreatedEvents = await TokenFactory.queryFilter(
         TokenFactory.filters.TokenCreated(),
@@ -340,7 +289,7 @@ async function main() {
     }
 
     const newTokenAddress = tokenCreatedEvents[0].args.token;
-    console.log(`Token created at: ${newTokenAddress}`);
+    console.log(`✅ Token created at: ${newTokenAddress}`);
 
     const tokenContract = await ethers.getContractAt("contracts/MemecoinLaunchpad/interfaces/IERC20.sol:IERC20", newTokenAddress);
 
@@ -364,60 +313,60 @@ async function main() {
         const saltValues = [ethers.ZeroHash, ethers.ZeroHash, ethers.ZeroHash];
 
         // 2. First buy - small amount that won't reach funding goal
-        console.log("\n2. First buy - small amount...");
+        console.log("\n💰 Step 2: First buy - small amount...");
         const smallBuyAmount = FUNDING_GOAL_MULTIPLIER / 4n; // 0.025 SOL
-        console.log(`Buying with ${ethers.formatUnits(smallBuyAmount, wsolDecimals)} WSOL...`);
+        console.log(`   Amount: ${ethers.formatUnits(smallBuyAmount, wsolDecimals)} WSOL`);
 
         await logTransaction(
             await wsolToken.approve(TOKEN_FACTORY_ADDRESS, smallBuyAmount),
-            "WSOL approval for first buy"
+            "WSOL approval"
         );
 
         await logTransaction(
             await TokenFactory.buy(newTokenAddress, smallBuyAmount,
                 { lamports: lamports, salt: saltValues, instruction: instructions },
                 { fundingTokenATA: fundingTokenATABytes32, memeTokenATA: memeTokenATABytes32 }),
-            "First buy transaction"
+            "First buy"
         );
 
         // 3. Sell some tokens
-        console.log("\n3. Selling some tokens...");
+        console.log("\n💰Step 3: Selling some tokens...");
         const tokenBalance = await tokenContract.balanceOf(deployer.address);
         const sellAmount = tokenBalance / 2n; // Sell half of the tokens
-        console.log(`Selling ${ethers.formatUnits(sellAmount, await tokenContract.decimals())} tokens...`);
+        console.log(`   Amount: ${ethers.formatUnits(sellAmount, await tokenContract.decimals())} tokens`);
 
         await logTransaction(
             await tokenContract.approve(TOKEN_FACTORY_ADDRESS, sellAmount),
-            "Token approval for sell"
+            "Token approval"
         );
 
         await logTransaction(
             await TokenFactory.sell(newTokenAddress, sellAmount),
-            "Sell transaction"
+            "Sell"
         );
 
         // 4. Final buy to reach funding goal and create Raydium pool
-        console.log("\n4. Final buy to reach funding goal and create Raydium pool...");
+        console.log("\n🚀 Step 4: Final buy to reach funding goal and create Raydium pool...");
         const remainingAmount = FUNDING_GOAL_MULTIPLIER * BUY_BUFFER / 100n;
-        console.log(`Buying with ${ethers.formatUnits(remainingAmount, wsolDecimals)} WSOL (with ${BUY_BUFFER - 100n}% buffer)...`);
+        console.log(`   Amount: ${ethers.formatUnits(remainingAmount, wsolDecimals)} WSOL (with ${BUY_BUFFER - 100n}% buffer)`);
 
         await logTransaction(
             await wsolToken.approve(TOKEN_FACTORY_ADDRESS, remainingAmount),
-            "WSOL approval for final buy"
+            "WSOL approval"
         );
 
         await logTransaction(
             await TokenFactory.buy(newTokenAddress, remainingAmount,
                 { lamports: lamports, salt: saltValues, instruction: instructions },
                 { fundingTokenATA: fundingTokenATABytes32, memeTokenATA: memeTokenATABytes32 }),
-            "Final buy transaction with Raydium pool creation"
+            "Final buy with Raydium pool creation"
         );
 
         //*************************** LOCK LIQUIDITY *********************************/
-        console.log("\nProceeding with liquidity locking...");
+        console.log("\n🔒 Step 5: Locking liquidity...");
 
         const salt = generateUniqueSalt();
-        console.log(`Generated unique salt: ${salt}`);
+        console.log(`   Generated unique salt: ${salt}`);
         const externalAuthority = ethers.encodeBase58(await TokenFactory.getExtAuthority(salt));
 
         let poolInfo;
@@ -457,42 +406,41 @@ async function main() {
         instructionBuilderForLockingLiquidity.builder.instructions[0].keys[3].isSigner = true;
         instructionBuilderForLockingLiquidity.builder.instructions[0].keys[3].isWritable = true;
 
-        console.log("======= INSTRUCTION PREPARATION =======");
+        console.log("   Preparing lock liquidity instruction...");
         const instruction = config.utils.prepareInstruction(instructionBuilderForLockingLiquidity.builder.instructions[0]);
-        console.log("======== INSTRUCTION PREPARED ========");
-        console.log("executing lock liquidity transaction...");
+        console.log("   Executing lock liquidity transaction...");
         const tx = await TokenFactory.execute(
             1000000000,
             salt,
             instruction
         );
 
-        await logTransaction(tx, "Lock liquidity transaction");
+        await logTransaction(tx, "Lock liquidity");
 
         const tokenState = await TokenFactory.tokens(newTokenAddress);
 
         if (tokenState === TokenState.TRADING) {
-            console.log("\nSuccess! Token launch completed:");
-            console.log(`- Token created at: ${newTokenAddress}`);
-            console.log(`- Raydium pool created for tokens:`);
-            console.log(`  - Token A (new token): ${newTokenMint}`);
-            console.log(`  - Token B (WSOL): ${wsolTokenMint}`);
+            console.log("\n🎉 Success! Token launch completed:");
+            console.log(`   Token address: ${newTokenAddress}`);
+            console.log(`   Raydium pool created:`);
+            console.log(`     Token A (new token): ${newTokenMint}`);
+            console.log(`     Token B (WSOL): ${wsolTokenMint}`);
         } else {
-            console.log("\nFailed to reach funding goal or create liquidity pool.");
+            console.log("\n❌ Failed to reach funding goal or create liquidity pool.");
             const collateralAfter = await TokenFactory.collateral(newTokenAddress);
-            console.log(`Current collateral: ${ethers.formatUnits(collateralAfter, wsolDecimals)} WSOL`);
-            console.log(`Funding goal: ${ethers.formatUnits(FUNDING_GOAL_MULTIPLIER, wsolDecimals)} WSOL`);
+            console.log(`   Current collateral: ${ethers.formatUnits(collateralAfter, wsolDecimals)} WSOL`);
+            console.log(`   Funding goal: ${ethers.formatUnits(FUNDING_GOAL_MULTIPLIER, wsolDecimals)} WSOL`);
         }
 
     } catch (err) {
-        console.error("Error during Raydium pool setup:", err);
+        console.error("❌ Error during Raydium pool setup:", err);
         throw err;
     }
 
-    console.log("\n--- Testing Completed Successfully ---");
+    console.log("\n✨ Testing Completed Successfully ✨");
 }
 
 main().catch((error) => {
     console.error(error);
     process.exitCode = 1;
-}); 
+});
