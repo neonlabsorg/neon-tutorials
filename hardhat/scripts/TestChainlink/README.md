@@ -1,25 +1,48 @@
-# Chainlink Price Data Feeds Integration Example on Neon EVM Mainnet and Devnet
+# Chainlink Integration Example on Neon EVM
 
-To know more about Chainlink price feeds, please see this [documentation](https://neonevm.org/docs/developing/integrate/oracles/integrating_chainlink).
+This tutorial demonstrates how to integrate Chainlink oracles into your smart contracts on Neon EVM.
 
-## Deploy script
+## 📝 Overview
 
-1. To deploy `TestChainlink.sol`, run the following -
+This example shows how to:
+1. Deploy a contract that uses Chainlink oracles
+2. Request and receive data from Chainlink
+3. Handle oracle responses and callbacks
 
-```sh
+## 🔄 Usage
+
+### 📋 Prerequisites
+
+- ✅ Node.js and npm installed
+- ✅ Hardhat configured for Neon network
+- ✅ Funded wallet on Neon network
+- ✅ Install Chainlink Contracts: Follow the [Chainlink Setup](../../README.md#dependency-setup) instructions in the main README
+
+### 🚀 Deployment
+
+To deploy the contract:
+
+```bash
 npx hardhat run scripts/TestChainlink/deploy.js --network neondevnet
 ```
 
-2. The output will look like this -
+## ⚙️ Configuration
 
-```sh
-TestChainlink deployed to 0xd7B08bEEE599235778D7e72a997d3dd116860703
-BTC_USD 58393.25
-ETH_USD 2521.6
-LINK_USD 10.699538
-SOL_USD 131.73112
-USDC_USD 1
-USDT_USD 1
-```
+The contract uses the following Chainlink components:
+- Oracle contract address
+- Job ID
+- LINK token address
 
-**Note:** To deploy the smart contract on Neon EVM Mainnet, `--network neondevnet` should be replaced by `--network neonmainnet` while running the hardhat command for running the script.
+## 🔄 Transaction Flow
+
+1. **Request Data**: Send a request to the Chainlink oracle
+2. **Oracle Processing**: Wait for the oracle to process the request
+3. **Callback**: Receive and handle the oracle's response
+
+## ❓ Troubleshooting
+
+If you encounter issues:
+
+1. 💰 Ensure your wallet has sufficient LINK tokens
+2. ✅ Check that the oracle address and job ID are correct
+3. 🔍 Verify the oracle requests on the Chainlink dashboard

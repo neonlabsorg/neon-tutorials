@@ -1,3 +1,52 @@
+# Test Call Solana
+
+This tutorial demonstrates how to call Solana programs directly from Neon EVM.
+
+## 📝 Overview
+
+This example shows how to:
+1. Call Solana programs from Neon EVM
+2. Handle cross-chain transactions
+3. Process Solana program responses
+
+## 🔄 Usage
+
+### 📋 Prerequisites
+
+- ✅ Node.js and npm installed
+- ✅ Hardhat configured for Neon network
+- ✅ Funded wallet on Neon network
+- ✅ Follow the [Anchor Wallet Setup](../../README.md#anchor-wallet-setup) instructions in the main README
+
+### 🚀 Running the Script
+
+To run the test script:
+
+```bash
+npx hardhat run scripts/TestCallSolana/test.js --network neondevnet
+```
+
+## ⚙️ Configuration
+
+The script uses the following configuration:
+- Solana RPC endpoint
+- Program ID
+- Account addresses
+
+## 🔄 Transaction Flow
+
+1. **Prepare Call**: Set up the Solana program call parameters
+2. **Execute Call**: Send the transaction to the Solana program
+3. **Process Response**: Handle the program's response
+
+## ❓ Troubleshooting
+
+If you encounter issues:
+
+1. 💰 Ensure your wallet has sufficient SOL
+2. ✅ Check that the program ID and account addresses are correct
+3. 🔍 Verify the transactions on Solana Explorer
+
 # Examples of Interacting with Solana from Neon EVM
 
 The following examples are based on the `Composability` feature of Solana. `TestCallSolana.sol` contract is deployed on both Neon EVM Devnet and Mainnet and the contract addresses are added in the `config.js` file.

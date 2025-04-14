@@ -1,17 +1,32 @@
 # API3 Price Feeds Integration Example on Neon EVM Mainnet and Devnet
 
-To know more about API3 price feeds, please see this [documentation](https://neonevm.org/docs/developing/integrate/oracles/integrating_api3).
+This tutorial demonstrates how to integrate API3 price feeds into your smart contracts on Neon EVM.
 
-## Deploy script
+## 📝 Overview
 
-1. To deploy `TestAPI3.sol`, run the following -
+This example shows how to:
+1. Deploy a contract that uses API3 price feeds
+2. Read price data from various feeds
+3. Handle price updates and timestamps
 
-```sh
+## 🔄 Usage
+
+### 📋 Prerequisites
+
+- ✅ Node.js and npm installed
+- ✅ Hardhat configured for Neon network
+- ✅ Funded wallet on Neon network
+- ✅ Install API3 Protocol: Follow the [API3 Setup](../../README.md#dependency-setup) instructions in the main README
+
+### 🚀 Deployment
+
+To deploy the contract:
+
+```bash
 npx hardhat run scripts/TestAPI3/deploy.js --network neondevnet
 ```
 
-2. The output will look like this -
-
+The output will look like this:
 ```sh
 TestAPI3 deployed to 0xB8747279e8029108720BcB5386511D70B9129D68
 BTC_USD Result(2) [ 64547812100000000000000n, 1721241637n ]
@@ -23,9 +38,25 @@ NEON_USD Result(2) [ 392570000000000000n, 1721270758n ]
 LINK_USD Result(2) [ 13807707000000000000n, 1721291017n ]
 ```
 
-The result represents an array with the following parameters:
-
+The result represents an array with:
 - 1st parameter - Price
 - 2nd parameter - Timestamp of the last price push
 
-**Note:** To deploy the smart contract on Neon EVM Mainnet, `--network neondevnet` should be replaced by `--network neonmainnet` while running the hardhat command for running the script.
+## ⚙️ Available Price Feeds
+
+The contract supports the following price feeds:
+- BTC/USD
+- ETH/USD
+- SOL/USD
+- USDC/USD
+- USDT/USD
+- NEON/USD
+- LINK/USD
+
+## ❓ Troubleshooting
+
+If you encounter issues:
+
+1. 💰 Ensure your wallet has sufficient NEON tokens
+2. ✅ Check that the API3 proxy addresses are correct
+3. 🔍 Verify the price feed data on the API3 dashboard

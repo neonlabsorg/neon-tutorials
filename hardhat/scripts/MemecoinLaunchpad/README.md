@@ -52,39 +52,7 @@ The launchpad now uses cross-chain functionality to:
 - ✅ Hardhat configured for Neon network
 - ✅ Funded wallet on Neon network
 - ✅ Raydium SDK v2 installed (`npm install @raydium-io/raydium-sdk-v2`)
-- ✅ Solana web3.js installed (`npm install @solana/web3.js @solana/spl-token`)
-- ✅ Solana wallet keypair file (`id.json`) for creating Associated Token Accounts (ATAs)
-- ✅ Set the `ANCHOR_WALLET` environment variable:
-  ```bash
-  export ANCHOR_WALLET=./id.json
-  ```
-
-### 🔑 Solana Wallet Setup
-
-The project requires a Solana wallet keypair file (`id.json`) for creating Associated Token Accounts (ATAs) and interacting with Solana programs.
-
-To set up your wallet:
-```bash
-export ANCHOR_WALLET=./id.json
-```
-
-### 👻 Converting Phantom Wallet Private Key to id.json
-
-1. 📤 Export your private key from Phantom wallet (Settings -> Export Private Key)
-
-2. ⚙️ Edit the [`convert-key.js`](convert-key.js) script:
-   - Replace the `privateKey` value with your exported private key
-   - ⚠️ **IMPORTANT**: Never commit your private key
-   - ⚠️ **IMPORTANT**: Remove your private key after use
-   ```bash
-   node convert-key.js
-   ```
-
-3. 🔐 Secure your `id.json`:
-   - Keep this file secure and never share it
-   - Set permissions: `chmod 600 id.json`
-   - Set the `ANCHOR_WALLET` environment variable
-   - ⚠️ **IMPORTANT**: Never commit the `id.json` file
+- ✅ Follow the [Anchor Wallet Setup](../../README.md#anchor-wallet-setup) instructions in the main README
 
 ### 🚀 Deployment
 
