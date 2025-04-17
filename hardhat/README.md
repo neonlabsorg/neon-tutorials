@@ -24,7 +24,7 @@ npm install
 ### Metamask Configuration
 1. Go to [Chainlist](https://chainlist.org/?search=Neon+EVM&testnets=true) and add the Neon EVM DevNet and Neon EVM MainNet networks to your Metamask wallet.
 2. Airdrop at most 100 NEONs to the created **account #1** [from here](https://neonfaucet.org/)
-3. Copy your Metamask account's private key (Account Details >> Export Private Key) and insert them into **.env**
+3. Copy your Metamask account's private key (Account Details >> Export Private Key) and insert them into **.env**. For demos that use the user1 and user2 keys, create two additional accounts in Metamask and repeat this step for them.
 
 ### Environment Setup
 Create a .env file in the root project folder and add these lines:
