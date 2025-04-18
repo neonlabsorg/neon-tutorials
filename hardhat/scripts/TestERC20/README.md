@@ -1,36 +1,50 @@
-# Deploying an ERC20 token example on Neon EVM Mainnet and Devnet
+# ERC20 Token Example on Neon EVM
 
-This is an example of deploying an ERC20 token on Neon EVM Devnet and Mainnet.
+This tutorial demonstrates how to deploy and interact with ERC20 tokens on Neon EVM.
 
-## Deploy script
+## 📝 Overview
 
-1. To deploy `TestERC20.sol`, run the following -
+This example shows how to:
+1. Deploy an ERC20 token contract
+2. Mint tokens to specified addresses
+3. Transfer tokens between accounts
+4. Check token balances
 
-```sh
+## 🔄 Usage
+
+### 📋 Prerequisites
+
+- ✅ Node.js and npm installed
+- ✅ Hardhat configured for Neon network
+- ✅ Funded wallet on Neon network
+
+### 🚀 Deployment
+
+To deploy the contract:
+
+```bash
 npx hardhat run scripts/TestERC20/deploy.js --network neondevnet
 ```
 
-2. The output will look like this -
+## ⚙️ Configuration
 
-```sh
-TestERC20 token deployed to 0xA0BE9710820E4434d6af7816aBeF973f8ecE01B4
-```
+The token contract uses the following parameters:
+- Token name
+- Token symbol
+- Initial supply
+- Decimal places
 
-## Transfer ERC20 tokens
+## 🔄 Transaction Flow
 
-1. To initiate a transfer from the deployer address to a randomly generated address and add the deployed address from the above step in the `transfer.js` file and run the following -
+1. **Deployment**: Deploy the ERC20 token contract
+2. **Minting**: Mint initial supply to the owner
+3. **Transfers**: Transfer tokens between accounts
+4. **Balance Checks**: Verify token balances
 
-```sh
-npx hardhat run scripts/TestERC20/transfer.js --network neondevnet
-```
+## ❓ Troubleshooting
 
-2. The output will look like this -
+If you encounter issues:
 
-```sh
-Sender balance before transfer 1000000000000000000000n
-Receiver balance before transfer 0n
-Sender balance after transfer 990000000000000000000n
-Receiver balance after transfer 10000000000000000000n
-```
-
-**Note:** To deploy the smart contract on Neon EVM Mainnet, `--network neondevnet` should be replaced by `--network neonmainnet` while running the hardhat command for running the script.
+1. 💰 Ensure your wallet has sufficient NEON tokens
+2. ✅ Check that the contract parameters are valid
+3. 🔍 Verify the transactions on the Neon Explorer

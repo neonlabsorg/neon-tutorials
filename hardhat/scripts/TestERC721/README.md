@@ -1,33 +1,50 @@
-# Deploying an ERC721 non-fungible token example on Neon EVM Mainnet and Devnet
+# ERC721 NFT Example on Neon EVM
 
-This is an example of deploying an ERC721 non-fungible token on Neon EVM Devnet and Mainnet.
+This tutorial demonstrates how to deploy and interact with ERC721 NFTs on Neon EVM.
 
-## Deploy script
+## 📝 Overview
 
-1. To deploy `TestERC721.sol`, run the following -
+This example shows how to:
+1. Deploy an ERC721 NFT contract
+2. Mint NFTs to specified addresses
+3. Transfer NFTs between accounts
+4. Check NFT ownership
 
-```sh
+## 🔄 Usage
+
+### 📋 Prerequisites
+
+- ✅ Node.js and npm installed
+- ✅ Hardhat configured for Neon network
+- ✅ Funded wallet on Neon network
+
+### 🚀 Deployment
+
+To deploy the contract:
+
+```bash
 npx hardhat run scripts/TestERC721/deploy.js --network neondevnet
 ```
 
-2. The output will look like this -
+## ⚙️ Configuration
 
-```sh
-TestERC721 token deployed to 0xa776bE5b34258f0E6d5c42e29767dFD58DeF803f
-```
+The NFT contract uses the following parameters:
+- Token name
+- Token symbol
+- Base URI for metadata
+- Maximum supply (if applicable)
 
-## Mint ERC721 non-fingible tokens
+## 🔄 Transaction Flow
 
-1. Paste the deployed contract address from the above step in the `mint.js` file. to mint some NFTs to the deployer address, run the following -
+1. **Deployment**: Deploy the ERC721 NFT contract
+2. **Minting**: Mint NFTs to specified addresses
+3. **Transfers**: Transfer NFTs between accounts
+4. **Ownership Checks**: Verify NFT ownership
 
-```sh
-npx hardhat run scripts/TestERC721/mint.js --network neondevnet
-```
+## ❓ Troubleshooting
 
-2. The output will look like this -
+If you encounter issues:
 
-```sh
-TestERC721 NFT with tokenId 2009 has been minted to 0x9CE2A03A7a258fB96d04Afb8Dd84b69A748B5959
-```
-
-**Note:** To deploy the smart contract on Neon EVM Mainnet, `--network neondevnet` should be replaced by `--network neonmainnet` while running the hardhat command for running the script.
+1. 💰 Ensure your wallet has sufficient NEON tokens
+2. ✅ Check that the contract parameters are valid
+3. 🔍 Verify the transactions on the Neon Explorer

@@ -1,3 +1,52 @@
+# Test Read Solana Data
+
+This tutorial demonstrates how to read data from Solana accounts directly from Neon EVM.
+
+## 📝 Overview
+
+This example shows how to:
+1. Read Solana account data from Neon EVM
+2. Parse and process Solana account information
+3. Handle different Solana account types
+
+## 🔄 Usage
+
+### 📋 Prerequisites
+
+- ✅ Node.js and npm installed
+- ✅ Hardhat configured for Neon network
+- ✅ Funded wallet on Neon network
+- ✅ Follow the [Anchor Wallet Setup](../../README.md#anchor-wallet-setup) instructions in the main README
+
+### 🚀 Running the Script
+
+To run the test script:
+
+```bash
+npx hardhat run scripts/TestReadSolanaData/test.js --network neondevnet
+```
+
+## ⚙️ Configuration
+
+The script uses the following configuration:
+- Solana RPC endpoint
+- Account addresses to read
+- Data parsing parameters
+
+## 🔄 Transaction Flow
+
+1. **Prepare Request**: Set up the account data request
+2. **Read Data**: Fetch the account data from Solana
+3. **Process Data**: Parse and handle the account information
+
+## ❓ Troubleshooting
+
+If you encounter issues:
+
+1. 💰 Ensure your wallet has sufficient SOL
+2. ✅ Check that the account addresses are correct
+3. 🔍 Verify the account data on Solana Explorer
+
 # Reading Solana account data via Neon EVM Devnet
 
 ## Reading Pyth price feeds from Solana Devnet via Neon EVM Devnet
